@@ -777,6 +777,85 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  packages/react/combobox:
+    dependencies:
+      '@radix-ui/primitive':
+        specifier: workspace:*
+        version: link:../../core/primitive
+      '@radix-ui/react-collection':
+        specifier: workspace:*
+        version: link:../collection
+      '@radix-ui/react-compose-refs':
+        specifier: workspace:*
+        version: link:../compose-refs
+      '@radix-ui/react-context':
+        specifier: workspace:*
+        version: link:../context
+      '@radix-ui/react-direction':
+        specifier: workspace:*
+        version: link:../direction
+      '@radix-ui/react-dismissable-layer':
+        specifier: workspace:*
+        version: link:../dismissable-layer
+      '@radix-ui/react-id':
+        specifier: workspace:*
+        version: link:../id
+      '@radix-ui/react-popper':
+        specifier: workspace:*
+        version: link:../popper
+      '@radix-ui/react-portal':
+        specifier: workspace:*
+        version: link:../portal
+      '@radix-ui/react-presence':
+        specifier: workspace:*
+        version: link:../presence
+      '@radix-ui/react-primitive':
+        specifier: workspace:*
+        version: link:../primitive
+      '@radix-ui/react-slot':
+        specifier: workspace:*
+        version: link:../slot
+      '@radix-ui/react-use-callback-ref':
+        specifier: workspace:*
+        version: link:../use-callback-ref
+      '@radix-ui/react-use-controllable-state':
+        specifier: workspace:*
+        version: link:../use-controllable-state
+      '@radix-ui/react-use-layout-effect':
+        specifier: workspace:*
+        version: link:../use-layout-effect
+      '@radix-ui/react-use-previous':
+        specifier: workspace:*
+        version: link:../use-previous
+    devDependencies:
+      '@repo/builder':
+        specifier: workspace:*
+        version: link:../../../internal/builder
+      '@repo/eslint-config':
+        specifier: workspace:*
+        version: link:../../../internal/eslint-config
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../../../internal/typescript-config
+      '@types/react':
+        specifier: ^19.2.2
+        version: 19.2.2
+      '@types/react-dom':
+        specifier: ^19.2.2
+        version: 19.2.2(@types/react@19.2.2)
+      eslint:
+        specifier: ^9.38.0
+        version: 9.38.0
+      react:
+        specifier: ^19.2.0
+        version: 19.2.0
+      react-dom:
+        specifier: ^19.2.0
+        version: 19.2.0(react@19.2.0)
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
   packages/react/compose-refs:
     devDependencies:
       '@repo/builder':

@@ -4,10 +4,10 @@ overview: Build a new `@radix-ui/react-combobox` primitive that combines a text 
 todos:
   - id: scaffold
     content: Create package directory structure, package.json, tsconfig, eslint config
-    status: pending
+    status: completed
   - id: core-state
     content: Implement Combobox root with createContextScope, createCollection, discriminated union props (multiple), and three controllable states (inputValue, value, open)
-    status: pending
+    status: completed
   - id: input-anchor-label
     content: Implement ComboboxInput (role=combobox, aria-activedescendant, aria-autocomplete from autocompleteBehavior), ComboboxAnchor (Popper anchor), ComboboxLabel
     status: pending
@@ -349,7 +349,8 @@ type PopperContentProps = React.ComponentPropsWithoutRef<typeof PopperPrimitive.
 type DismissableLayerProps = React.ComponentPropsWithoutRef<typeof DismissableLayer>;
 
 interface ComboboxContentProps
-  extends Omit<PopperContentProps, 'onPlaced'>, Omit<DismissableLayerProps, 'onDismiss'> {
+  extends Omit<PopperContentProps, 'onPlaced'>,
+    Omit<DismissableLayerProps, 'onDismiss'> {
   /** Force mounting for animation control. */
   forceMount?: true;
   /** Event handler called when auto-focusing on close. Can be prevented. */
