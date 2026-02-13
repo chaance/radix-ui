@@ -152,13 +152,13 @@ interface ComboboxBaseProps {
   /**
    * Controls which item is highlighted when the popover opens.
    *
-   * - `"selected"` (default): Highlights the currently selected item, falling
-   *   back to the first enabled item.
+   * - `"none"` (default): No item is highlighted until the user navigates
+   *   with arrow keys.
+   * - `"selected"`: Highlights the currently selected item, falling back to
+   *   the first enabled item.
    * - `"first"`: Always highlights the first enabled item.
-   * - `"none"`: No item is highlighted until the user navigates with arrow
-   *   keys.
    *
-   * @default "selected"
+   * @default "none"
    */
   initialHighlight?: 'selected' | 'first' | 'none';
 
@@ -228,7 +228,7 @@ const Combobox: React.FC<ComboboxProps> = (props: ScopedProps<ComboboxProps>) =>
     openOnFocus = false,
     openOnInput = true,
     autocompleteBehavior = 'list',
-    initialHighlight = 'selected',
+    initialHighlight = 'none',
     disabled = false,
     loop = false,
     dir,

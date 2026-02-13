@@ -216,9 +216,9 @@ interface ComboboxBaseProps {
 
   /**
    * Controls which item is highlighted when the popover opens.
-   * - `"selected"` (default): Highlights the currently selected item. If no item is selected, highlights the first enabled item.
+   * - `"none"` (default): No item is highlighted until the user navigates with arrow keys.
+   * - `"selected"`: Highlights the currently selected item. If no item is selected, highlights the first enabled item.
    * - `"first"`: Always highlights the first enabled item.
-   * - `"none"`: No item is highlighted until the user navigates with arrow keys.
    */
   initialHighlight?: 'selected' | 'first' | 'none';
 
