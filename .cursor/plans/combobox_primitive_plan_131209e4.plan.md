@@ -782,7 +782,13 @@ Implement inline completion behavior when `autocompleteBehavior` is `"both"`: au
   - `form` attribute associates the input with a `<form>` outside its DOM ancestry.
   - Multi-select: the native input value reflects search text, not selected values. Consumers handle submission of selected values themselves.
 - **RTL**: Arrow key directions are correct when `dir="rtl"` (primarily relevant if horizontal navigation is ever supported).
-- **Dynamic items**: Items added/removed while open. Highlighted item removed (highlight moves to nearest valid item). All items removed (no items in collection; consumer handles empty state rendering).
+- **Dynamic items**: Items added/removed while open. Highlighted item removed (highlight moves to nearest valid item). All items removed (no items in collection; consumer handles empty state rendering). Popover opens even when there are no items.
+- **Pointer interactions**: Mouse hover highlights items; pointer leave clears highlight. Disabled items are not highlighted on hover. Touch pointer moves do not highlight items; tap selects.
+- **Controlled state**: Controlled `open` prop is respected. Controlled `inputValue` prop is respected. `onOpenChange` and `onInputValueChange` fire correctly.
+- **Component parts rendering**: Label renders with `htmlFor` pointing to the input and focuses input on click. Separator renders with `aria-hidden`. Portal renders into a custom container. `forceMount` on Content and ItemIndicator renders even when closed / not selected.
+- **DismissableLayer callbacks**: `onEscapeKeyDown`, `onPointerDownOutside`, `onInteractOutside` fire at the correct times. Dismiss can be prevented via `event.preventDefault()` in `onPointerDownOutside`.
+- **ItemText `highlightMatches`**: Matching substrings wrapped in `<span data-radix-combobox-highlighted-text>`. Case-insensitive. No wrapping when input is empty or `highlightMatches` is false. Updates when input value changes.
+- **Data attributes**: `data-radix-combobox-open-state` on Anchor, Input, Trigger, Content. `data-radix-combobox-highlighted` on highlighted item. `data-radix-combobox-selected-state` on selected item. `data-radix-combobox-disabled` on disabled items.
 
 #### Storybook stories
 
@@ -841,24 +847,4 @@ For each combination, verify:
 
 ## Future Considerations
 
-Features that are out of scope for the initial implementation but should be considered for future iterations:
-
-### `highlightMatches` on `ComboboxItemText`
-
-A `highlightMatches?: boolean` prop on `ComboboxItemText` that automatically wraps substrings matching the current `inputValue` in a `<span data-radix-combobox-highlighted-text>` element. This would allow consumers to style matching characters with CSS (e.g., bold or colored text).
-
-```tsx
-// Future API sketch:
-<Combobox.ItemText highlightMatches>Apple</Combobox.ItemText>
-// When inputValue is "app", renders:
-// <span><span data-radix-combobox-highlighted-text>App</span>le</span>
-```
-
-Implementation considerations:
-
-- Case-insensitive matching by default, with an option for case-sensitive
-- Handling multiple non-contiguous matches within the same string
-- RTL text handling
-- HTML entity edge cases
-- Empty input value (no wrapping, pass-through)
-- Could alternatively be provided as a standalone utility component or helper function rather than a built-in prop, to keep the core primitive lean
+No features are currently deferred. The `highlightMatches` prop on `ComboboxItemText` (originally planned as a future addition) was implemented during Phase 4 as part of the initial release.
