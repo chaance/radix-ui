@@ -1,0 +1,126 @@
+import * as React from 'react';
+import { Combobox } from 'radix-ui';
+import styles from './combobox.stories.module.css';
+
+export default { title: 'Components/Combobox' };
+
+const FRUITS = [
+  'Apple',
+  'Banana',
+  'Blueberry',
+  'Cherry',
+  'Grape',
+  'Lemon',
+  'Mango',
+  'Orange',
+  'Peach',
+  'Pear',
+  'Pineapple',
+  'Plum',
+  'Strawberry',
+  'Watermelon',
+];
+
+export const Basic = () => {
+  const [inputValue, setInputValue] = React.useState('');
+  const matches = inputValue
+    ? FRUITS.filter((fruit) => fruit.toLowerCase().includes(inputValue.toLowerCase()))
+    : FRUITS;
+
+  return (
+    <div style={{ padding: 50 }}>
+      <Combobox.Root inputValue={inputValue} onInputValueChange={setInputValue}>
+        <Combobox.Label className={styles.label}>Favorite fruit</Combobox.Label>
+        <Combobox.Anchor className={styles.anchor}>
+          <Combobox.Input className={styles.input} placeholder="Search fruits…" />
+        </Combobox.Anchor>
+        {/* Content/Items will be added once those phases are implemented */}
+      </Combobox.Root>
+
+      <div style={{ marginTop: 16, fontSize: 14, color: '#666' }}>
+        <div>
+          Input value: <code>{JSON.stringify(inputValue)}</code>
+        </div>
+        <div>Matching items: {matches.length}</div>
+      </div>
+    </div>
+  );
+};
+
+export const Controlled = () => {
+  const [inputValue, setInputValue] = React.useState('');
+  const [value, setValue] = React.useState('Banana');
+  const matches = inputValue
+    ? FRUITS.filter((fruit) => fruit.toLowerCase().includes(inputValue.toLowerCase()))
+    : FRUITS;
+
+  return (
+    <div style={{ padding: 50 }}>
+      <Combobox.Root
+        inputValue={inputValue}
+        onInputValueChange={setInputValue}
+        value={value}
+        onValueChange={setValue}
+      >
+        <Combobox.Label className={styles.label}>Favorite fruit</Combobox.Label>
+        <Combobox.Anchor className={styles.anchor}>
+          <Combobox.Input className={styles.input} placeholder="Search fruits…" />
+        </Combobox.Anchor>
+      </Combobox.Root>
+
+      <div style={{ marginTop: 16, fontSize: 14, color: '#666' }}>
+        <div>
+          Input value: <code>{JSON.stringify(inputValue)}</code>
+        </div>
+        <div>
+          Selected value: <code>{JSON.stringify(value)}</code>
+        </div>
+        <div>Matching items: {matches.length}</div>
+      </div>
+    </div>
+  );
+};
+
+export const OpenOnFocus = () => {
+  const [inputValue, setInputValue] = React.useState('');
+  const [open, setOpen] = React.useState(false);
+
+  return (
+    <div style={{ padding: 50 }}>
+      <Combobox.Root
+        inputValue={inputValue}
+        onInputValueChange={setInputValue}
+        open={open}
+        onOpenChange={setOpen}
+        openOnFocus
+      >
+        <Combobox.Label className={styles.label}>Favorite fruit (opens on focus)</Combobox.Label>
+        <Combobox.Anchor className={styles.anchor}>
+          <Combobox.Input className={styles.input} placeholder="Focus me…" />
+        </Combobox.Anchor>
+      </Combobox.Root>
+
+      <div style={{ marginTop: 16, fontSize: 14, color: '#666' }}>
+        <div>
+          Open: <code>{JSON.stringify(open)}</code>
+        </div>
+        <div>
+          Input value: <code>{JSON.stringify(inputValue)}</code>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const Disabled = () => {
+  return (
+    <div style={{ padding: 50 }}>
+      <Combobox.Root disabled>
+        <Combobox.Label className={styles.label}>Disabled combobox</Combobox.Label>
+        <Combobox.Anchor className={styles.anchor}>
+          <Combobox.Input className={styles.input} placeholder="Can't type here…" />
+        </Combobox.Anchor>
+      </Combobox.Root>
+    </div>
+  );
+};

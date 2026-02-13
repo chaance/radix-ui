@@ -1,0 +1,138 @@
+.label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 4px;
+  color: var(--color-black);
+}
+
+.anchor {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--color-gray300);
+  border-radius: 6px;
+  overflow: hidden;
+  background-color: var(--color-white);
+
+  &:focus-within {
+    outline: 2px solid royalblue;
+    outline-offset: -1px;
+  }
+}
+
+.input {
+  padding: 8px 12px;
+  font-size: 14px;
+  line-height: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--color-black);
+  width: 200px;
+
+  &::placeholder {
+    color: var(--color-gray300);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  border: none;
+  border-left: 1px solid var(--color-gray300);
+  background: transparent;
+  color: var(--color-gray300);
+  cursor: pointer;
+  height: 100%;
+
+  &:hover {
+    background-color: var(--gray-3);
+  }
+}
+
+.cancel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  border: none;
+  background: transparent;
+  color: var(--color-gray300);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--color-black);
+  }
+}
+
+.content {
+  background-color: var(--color-white);
+  border: 1px solid var(--color-gray300);
+  border-radius: 6px;
+  padding: 4px;
+  box-shadow:
+    0 10px 38px -10px rgba(22, 23, 24, 0.35),
+    0 10px 20px -15px rgba(22, 23, 24, 0.2);
+  max-height: var(--radix-combobox-content-available-height);
+  width: var(--radix-combobox-anchor-width);
+  overflow-y: auto;
+}
+
+.item {
+  font-size: 14px;
+  line-height: 1;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: default;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  user-select: none;
+
+  &[data-radix-combobox-highlighted] {
+    background-color: royalblue;
+    color: white;
+    outline: none;
+  }
+
+  &[data-radix-combobox-disabled] {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  &[data-radix-combobox-selected-state='checked'] {
+    font-weight: 600;
+  }
+}
+
+.itemIndicator {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+}
+
+.separator {
+  height: 1px;
+  background-color: var(--color-gray300);
+  margin: 4px;
+}
+
+.groupLabel {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-gray300);
+  padding: 4px 12px;
+}
+
+.arrow {
+  fill: var(--color-white);
+  stroke: var(--color-gray300);
+  stroke-width: 1px;
+}

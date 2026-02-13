@@ -4,6 +4,7 @@ export * as AlertDialog from '@radix-ui/react-alert-dialog';
 export * as AspectRatio from '@radix-ui/react-aspect-ratio';
 export * as Avatar from '@radix-ui/react-avatar';
 export * as Checkbox from '@radix-ui/react-checkbox';
+export * as Combobox from '@radix-ui/react-combobox';
 export * as Collapsible from '@radix-ui/react-collapsible';
 export * as ContextMenu from '@radix-ui/react-context-menu';
 export * as Dialog from '@radix-ui/react-dialog';

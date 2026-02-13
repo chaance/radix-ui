@@ -61,6 +61,7 @@
     "@radix-ui/react-aspect-ratio": "workspace:*",
     "@radix-ui/react-avatar": "workspace:*",
     "@radix-ui/react-checkbox": "workspace:*",
+    "@radix-ui/react-combobox": "workspace:*",
     "@radix-ui/react-collapsible": "workspace:*",
     "@radix-ui/react-collection": "workspace:*",
     "@radix-ui/react-compose-refs": "workspace:*",

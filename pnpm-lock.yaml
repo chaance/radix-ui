@@ -2142,6 +2142,9 @@ importers:
       '@radix-ui/react-collection':
         specifier: workspace:*
         version: link:../collection
+      '@radix-ui/react-combobox':
+        specifier: workspace:*
+        version: link:../combobox
       '@radix-ui/react-compose-refs':
         specifier: workspace:*
         version: link:../compose-refs
