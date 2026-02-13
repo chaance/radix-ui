@@ -392,6 +392,44 @@ export const MultiSelect = () => {
   );
 };
 
+export const AutocompleteBoth = () => {
+  const [inputValue, setInputValue] = React.useState('');
+  const matches = inputValue
+    ? FRUITS.filter((fruit) => fruit.toLowerCase().includes(inputValue.toLowerCase()))
+    : FRUITS;
+
+  return (
+    <div style={{ padding: 50 }}>
+      <Combobox.Root
+        inputValue={inputValue}
+        onInputValueChange={setInputValue}
+        autocompleteBehavior="both"
+      >
+        <Combobox.Label className={styles.label}>
+          Inline completion (autocompleteBehavior=&quot;both&quot;)
+        </Combobox.Label>
+        <Combobox.Anchor className={styles.anchor}>
+          <Combobox.Input className={styles.input} placeholder="Type to autocomplete…" />
+        </Combobox.Anchor>
+        <Combobox.Portal>
+          <Combobox.Content className={styles.content} sideOffset={4}>
+            {matches.length > 0 ? (
+              matches.map((fruit) => (
+                <Combobox.Item key={fruit} value={fruit} className={styles.item}>
+                  <Combobox.ItemText>{fruit}</Combobox.ItemText>
+                  <Combobox.ItemIndicator className={styles.itemIndicator}>✓</Combobox.ItemIndicator>
+                </Combobox.Item>
+              ))
+            ) : (
+              <div style={{ padding: '8px 12px', color: '#999', fontSize: 14 }}>No results</div>
+            )}
+          </Combobox.Content>
+        </Combobox.Portal>
+      </Combobox.Root>
+    </div>
+  );
+};
+
 export const Disabled = () => {
   return (
     <div style={{ padding: 50 }}>

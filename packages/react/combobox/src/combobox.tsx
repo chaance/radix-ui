@@ -417,6 +417,95 @@ const ComboboxInput = React.forwardRef<ComboboxInputElement, ComboboxInputProps>
     const getItems = useCollection(__scopeCombobox);
     const composedRef = useComposedRefs(forwardedRef, inputRef);
 
+    // --- Inline completion state (autocompleteBehavior="both") ---
+    // Whether the next layout effect should apply inline completion. Set to
+    // true on forward text insertion and arrow-key navigation; false otherwise
+    // (deletion, selection, blur, etc.).
+    const canInlineRef = React.useRef(false);
+    // The portion of the input value the user actually typed. Kept separate
+    // from `inputValue` so the consumer's filter logic operates on the typed
+    // text while the DOM can show the full completion.
+    const userTypedValueRef = React.useRef(inputValue);
+
+    // Apply or remove inline completion after React renders.
+    //
+    // We use `useLayoutEffect` + `queueMicrotask` so the completion logic
+    // runs *after* all sibling layout effects (where Collection.ItemSlot
+    // registers items) but *before* the browser paints (no visible flash).
+    // This mirrors the timing strategy used by the initial-highlight effect
+    // in ComboboxContentImpl.
+    React.useLayoutEffect(() => {
+      if (autocompleteBehavior !== 'both') return;
+      const input = inputRef.current;
+      if (!input) return;
+
+      // When the popover closes, ensure the DOM matches the controlled value
+      // (discarding any leftover completion text).
+      if (!isOpen) {
+        if (input.value !== inputValue) {
+          input.value = inputValue;
+        }
+        return;
+      }
+
+      if (!canInlineRef.current) return;
+      canInlineRef.current = false;
+
+      const typed = userTypedValueRef.current;
+      if (!typed) return;
+
+      // Capture the current highlighted item id for use inside the microtask.
+      const currentHighlightedId = highlightedItemId;
+
+      let cancelled = false;
+      queueMicrotask(() => {
+        if (cancelled) return;
+
+        const items = getItems();
+        let completionItem: (CollectionItem & { textValue: string }) | undefined;
+
+        // If an item is highlighted (e.g. from arrow navigation), prefer it
+        if (currentHighlightedId) {
+          const highlighted = items.find(
+            (item) => item.ref.current?.id === currentHighlightedId && !item.disabled,
+          );
+          if (highlighted && hasCompletionString(typed, highlighted.textValue)) {
+            completionItem = highlighted;
+          }
+        }
+
+        // Otherwise find the first enabled item whose text extends the typed text
+        if (!completionItem) {
+          completionItem = items.find(
+            (item) => !item.disabled && hasCompletionString(typed, item.textValue),
+          );
+          // Also highlight the matched item so aria-activedescendant is correct
+          if (completionItem?.ref.current) {
+            onHighlightedItemIdChange(completionItem.ref.current.id);
+            completionItem.ref.current.scrollIntoView({ block: 'nearest' });
+          }
+        }
+
+        if (completionItem) {
+          const fullText = completionItem.textValue;
+          input.value = fullText;
+          input.setSelectionRange(typed.length, fullText.length);
+        }
+      });
+
+      return () => {
+        cancelled = true;
+      };
+    }, [
+      inputValue,
+      highlightedItemId,
+      isOpen,
+      autocompleteBehavior,
+      getItems,
+      onHighlightedItemIdChange,
+      inputRef,
+    ]);
+
     return (
       <Primitive.input
         autoComplete="off"
@@ -491,6 +580,7 @@ const ComboboxInput = React.forwardRef<ComboboxInputElement, ComboboxInputProps>
                 nextIndex = currentIndex + 1;
               }
               highlightAndScrollItem(enabledItems[nextIndex], onHighlightedItemIdChange);
+              if (autocompleteBehavior === 'both') canInlineRef.current = true;
               break;
             }
             case 'ArrowUp': {
@@ -506,12 +596,14 @@ const ComboboxInput = React.forwardRef<ComboboxInputElement, ComboboxInputProps>
                 prevIndex = currentIndex - 1;
               }
               highlightAndScrollItem(enabledItems[prevIndex], onHighlightedItemIdChange);
+              if (autocompleteBehavior === 'both') canInlineRef.current = true;
               break;
             }
             case 'Home': {
               event.preventDefault();
               if (enabledItems.length === 0) return;
               highlightAndScrollItem(enabledItems[0], onHighlightedItemIdChange);
+              if (autocompleteBehavior === 'both') canInlineRef.current = true;
               break;
             }
             case 'End': {
@@ -521,6 +613,7 @@ const ComboboxInput = React.forwardRef<ComboboxInputElement, ComboboxInputProps>
                 enabledItems[enabledItems.length - 1],
                 onHighlightedItemIdChange,
               );
+              if (autocompleteBehavior === 'both') canInlineRef.current = true;
               break;
             }
             case 'Enter': {
@@ -555,6 +648,25 @@ const ComboboxInput = React.forwardRef<ComboboxInputElement, ComboboxInputProps>
               break;
             }
             case 'Tab': {
+              // In "both" autocomplete mode, Tab accepts the inline
+              // completion: update inputValue to the full text and select
+              // the highlighted item so the value is committed. Only do
+              // this when there is actual typed text — an empty input means
+              // the user cleared it and we should not re-select.
+              if (autocompleteBehavior === 'both' && highlightedItemId && inputValue) {
+                const highlightedItem = items.find(
+                  (item) => item.ref.current?.id === highlightedItemId,
+                );
+                if (highlightedItem && !highlightedItem.disabled) {
+                  onInputValueChange(highlightedItem.textValue);
+                  userTypedValueRef.current = highlightedItem.textValue;
+                  if (!multiple) {
+                    context.onValueChange(highlightedItem.value);
+                    context.selectedTextRef.current =
+                      highlightedItem.textValue || highlightedItem.value;
+                  }
+                }
+              }
               // Close the popover and let Tab move focus naturally (don't
               // preventDefault so the browser handles focus movement).
               closePopover(context);
@@ -565,7 +677,20 @@ const ComboboxInput = React.forwardRef<ComboboxInputElement, ComboboxInputProps>
         })}
         onChange={composeEventHandlers(inputProps.onChange, (event) => {
           const nativeEvent = event.nativeEvent as InputEvent;
-          onInputValueChange(event.target.value);
+          const newValue = event.target.value;
+          onInputValueChange(newValue);
+
+          // Track whether this input event qualifies for inline completion:
+          // only forward text insertion at the end of the value, and not
+          // during IME composition.
+          if (autocompleteBehavior === 'both') {
+            const textInserted =
+              nativeEvent.inputType === 'insertText' ||
+              nativeEvent.inputType === 'insertCompositionText';
+            const caretAtEnd = event.target.selectionStart === newValue.length;
+            canInlineRef.current = textInserted && caretAtEnd && !nativeEvent.isComposing;
+            userTypedValueRef.current = newValue;
+          }
 
           // Open the popover when the user types, unless mid-composition
           if (openOnInput && !isOpen && !nativeEvent.isComposing) {
@@ -593,6 +718,26 @@ const ComboboxInput = React.forwardRef<ComboboxInputElement, ComboboxInputProps>
             }
           }
 
+          // In "both" autocomplete mode, accept the inline completion on
+          // blur: commit the highlighted item as the selected value. Only
+          // when there is typed text — an empty input means the user cleared
+          // it intentionally.
+          if (autocompleteBehavior === 'both' && isOpen && highlightedItemId && inputValue) {
+            const items = getItems();
+            const highlightedItem = items.find(
+              (item) => item.ref.current?.id === highlightedItemId,
+            );
+            if (highlightedItem && !highlightedItem.disabled) {
+              onInputValueChange(highlightedItem.textValue);
+              userTypedValueRef.current = highlightedItem.textValue;
+              if (!multiple) {
+                context.onValueChange(highlightedItem.value);
+                context.selectedTextRef.current =
+                  highlightedItem.textValue || highlightedItem.value;
+              }
+            }
+          }
+
           if (isOpen) {
             closePopover(context);
           }
@@ -601,9 +746,16 @@ const ComboboxInput = React.forwardRef<ComboboxInputElement, ComboboxInputProps>
           onHighlightedItemIdChange('');
 
           // When allowCustomValue is false, revert the input to the selected
-          // item's text (single-select) or clear it (multi-select) on blur
+          // item's text (single-select) or clear it (multi-select) on blur.
+          // An empty input is treated as an intentional deselection: clear the
+          // value instead of restoring the previously selected item's text.
           if (!allowCustomValue) {
-            revertInputValue(context, getItems);
+            if (!inputValue && !multiple) {
+              context.onValueChange(null);
+              context.selectedTextRef.current = '';
+            } else {
+              revertInputValue(context, getItems);
+            }
           }
         })}
         onCompositionStart={composeEventHandlers(inputProps.onCompositionStart, () => {
@@ -1309,6 +1461,17 @@ function revertInputValue(
       context.onInputValueChange('');
     }
   }
+}
+
+/**
+ * Checks whether `itemText` is a valid inline completion for `typed`: i.e. it
+ * is longer than `typed` and starts with `typed` (case-insensitive).
+ */
+function hasCompletionString(typed: string, itemText: string): boolean {
+  return (
+    itemText.length > typed.length &&
+    itemText.toLowerCase().startsWith(typed.toLowerCase())
+  );
 }
 
 /**

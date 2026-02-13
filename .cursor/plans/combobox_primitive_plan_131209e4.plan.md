@@ -28,7 +28,7 @@ todos:
     status: completed
   - id: autocomplete-both
     content: Implement autocompleteBehavior="both" inline completion (auto-fill input with best match, select completed portion, handle backspace/IME)
-    status: pending
+    status: completed
   - id: tests-stories
     content: Write unit tests (vitest + testing-library + axe), Storybook stories, Cypress e2e tests. Document manual test matrix for screen readers (VoiceOver, NVDA, JAWS, TalkBack), speech dictation (Voice Control, Voice Access), virtual keyboards (iOS/Android), and touch interactions. Register in radix-ui umbrella package.
     status: pending
