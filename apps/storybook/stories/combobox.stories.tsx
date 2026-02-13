@@ -113,6 +113,7 @@ function StateDisplay(props: { items: Record<string, unknown> }) {
           {label}: <code>{JSON.stringify(value)}</code>
         </div>
       ))}
+      <button type="button">Focusable button</button>
     </div>
   );
 }
@@ -170,7 +171,7 @@ export const Basic = {
 export const Controlled = {
   render: function Controlled(args: ComboboxStoryArgs) {
     const [inputValue, setInputValue] = React.useState('');
-    const [value, setValue] = React.useState<string | null>('Banana');
+    const [value, setValue] = React.useState<string | null>('');
     const matches = filterFruits(inputValue);
 
     return (
@@ -253,7 +254,9 @@ export const OpenOnFocus = {
               {matches.map((fruit) => (
                 <Combobox.Item key={fruit} value={fruit} className={styles.item}>
                   <Combobox.ItemText>{fruit}</Combobox.ItemText>
-                  <Combobox.ItemIndicator className={styles.itemIndicator}>✓</Combobox.ItemIndicator>
+                  <Combobox.ItemIndicator className={styles.itemIndicator}>
+                    ✓
+                  </Combobox.ItemIndicator>
                 </Combobox.Item>
               ))}
             </Combobox.Content>
@@ -543,9 +546,7 @@ export const MultiSelect = {
           </Combobox.Portal>
         </Combobox.Root>
 
-        <StateDisplay
-          items={{ 'Input value': inputValue, 'Selected values': selectedValues }}
-        />
+        <StateDisplay items={{ 'Input value': inputValue, 'Selected values': selectedValues }} />
       </div>
     );
   },

@@ -229,7 +229,65 @@ describe('enforceMatchingInputValue', () => {
   afterEach(cleanup);
 
   describe('when true', () => {
-    it.todo('should revert input to the selected item text on blur');
+    describe('with no selection value + un-matched input value', () => {
+      it.todo('should have empty input and selection value on blur', async () => {
+        const inputValue = ''; // TODO
+        const selectionValue = null; // TODO
+        // 1. Focus the input
+        // 2. Type 'lalalalaaaa'
+        // 3. Blur the input
+        expect(inputValue).toBe('');
+        expect(selectionValue).toBe(null);
+      });
+    });
+
+    describe('with no selection value + matched input value', () => {
+      it.todo('should update the selection value to match the input value on blur', async () => {
+        const inputValue = ''; // TODO
+        const selectionValue = null; // TODO
+        // 1. Focus the input
+        // 2. Type 'Banana'
+        // 3. Blur the input
+        expect(inputValue).toBe('Banana');
+        expect(selectionValue).toBe('Banana');
+      });
+    });
+
+    describe('with selection value + un-matched input value', () => {
+      it.todo('should revert input to the selected item text on blur', () => {
+        const inputValue = 'Banana'; // TODO
+        const selectionValue = 'Banana'; // TODO
+        // 1. Focus the input
+        // 2. Type 'lalalalaaaa'
+        // 3. Blur the input
+        expect(inputValue).toBe('Banana');
+        expect(selectionValue).toBe('Banana');
+      });
+    });
+
+    describe('with selection value + cleared input value', () => {
+      it.todo('should revert input to the selected item text on blur', () => {
+        const inputValue = 'Banana'; // TODO
+        const selectionValue = 'Banana'; // TODO
+        // 1. Focus the input
+        // 2. Clear the input
+        // 3. Blur the input
+        expect(inputValue).toBe('Banana');
+        expect(selectionValue).toBe('Banana');
+      });
+    });
+
+    describe('with selection value + matched input value', () => {
+      it.todo('should update the selection value and input value on blur', () => {
+        const inputValue = 'Banana'; // TODO
+        const selectionValue = 'Banana'; // TODO
+        // 1. Focus the input
+        // 2. Type 'Apple'
+        // 3. Blur the input
+        expect(inputValue).toBe('Apple');
+        expect(selectionValue).toBe('Apple');
+      });
+    });
 
     it.todo('should clear input on blur if no item is selected');
 
@@ -241,6 +299,66 @@ describe('enforceMatchingInputValue', () => {
   });
 
   describe('when false (default)', () => {
+    describe('with no selection value + un-matched input value', () => {
+      it.todo('should preserve input value and clear selection value on blur', async () => {
+        const inputValue = ''; // TODO
+        const selectionValue = null; // TODO
+        // 1. Focus the input
+        // 2. Type 'lalalalaaaa'
+        // 3. Blur the input
+        expect(inputValue).toBe('lalalalaaaa');
+        expect(selectionValue).toBe(null);
+      });
+    });
+
+    describe('with no selection value + matched input value', () => {
+      it.todo('should update the selection value to match the input value on blur', async () => {
+        const inputValue = ''; // TODO
+        const selectionValue = null; // TODO
+        // 1. Focus the input
+        // 2. Type 'Banana'
+        // 3. Blur the input
+        expect(inputValue).toBe('Banana');
+        expect(selectionValue).toBe('Banana');
+      });
+    });
+
+    describe('with selection value + un-matched input value', () => {
+      it.todo('should preserve input value and clear selection value on blur', () => {
+        const inputValue = 'Banana'; // TODO
+        const selectionValue = 'Banana'; // TODO
+        // 1. Focus the input
+        // 2. Type 'lalalalaaaa'
+        // 3. Blur the input
+        expect(inputValue).toBe('lalalalaaaa');
+        expect(selectionValue).toBe(null);
+      });
+    });
+
+    describe('with selection value + cleared input value', () => {
+      it.todo('should preserve input value and clear selection value on blur', () => {
+        const inputValue = 'Banana'; // TODO
+        const selectionValue = 'Banana'; // TODO
+        // 1. Focus the input
+        // 2. Clear the input
+        // 3. Blur the input
+        expect(inputValue).toBe('');
+        expect(selectionValue).toBe(null);
+      });
+    });
+
+    describe('with selection value + matched input value', () => {
+      it.todo('should update the selection value and input value on blur', () => {
+        const inputValue = 'Banana'; // TODO
+        const selectionValue = 'Banana'; // TODO
+        // 1. Focus the input
+        // 2. Type 'Apple'
+        // 3. Blur the input
+        expect(inputValue).toBe('Apple');
+        expect(selectionValue).toBe('Apple');
+      });
+    });
+
     it.todo('should preserve any typed value on blur');
 
     it.todo('should preserve any typed value on Escape when popover is closed');
