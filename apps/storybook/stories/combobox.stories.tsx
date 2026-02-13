@@ -36,7 +36,7 @@ const FOOD_GROUPS = {
 
 interface ComboboxStoryArgs {
   disabled: boolean;
-  allowCustomValue: boolean;
+  enforceMatchingInputValue: boolean;
   openOnFocus: boolean;
   openOnInput: boolean;
   autocompleteBehavior: 'list' | 'both' | 'none';
@@ -51,9 +51,9 @@ export default {
       control: 'boolean',
       description: 'Disables the entire combobox',
     },
-    allowCustomValue: {
+    enforceMatchingInputValue: {
       control: 'boolean',
-      description: 'Allow values not matching any item',
+      description: 'Revert input to selected item text on blur if it does not match a valid item',
     },
     openOnFocus: {
       control: 'boolean',
@@ -80,7 +80,7 @@ export default {
   },
   args: {
     disabled: false,
-    allowCustomValue: false,
+    enforceMatchingInputValue: false,
     openOnFocus: false,
     openOnInput: true,
     autocompleteBehavior: 'list',
@@ -132,7 +132,7 @@ export const Basic = {
           inputValue={inputValue}
           onInputValueChange={setInputValue}
           disabled={args.disabled}
-          allowCustomValue={args.allowCustomValue}
+          enforceMatchingInputValue={args.enforceMatchingInputValue}
           openOnFocus={args.openOnFocus}
           openOnInput={args.openOnInput}
           autocompleteBehavior={args.autocompleteBehavior}
@@ -181,7 +181,7 @@ export const Controlled = {
           value={value}
           onValueChange={setValue}
           disabled={args.disabled}
-          allowCustomValue={args.allowCustomValue}
+          enforceMatchingInputValue={args.enforceMatchingInputValue}
           openOnFocus={args.openOnFocus}
           openOnInput={args.openOnInput}
           autocompleteBehavior={args.autocompleteBehavior}
@@ -237,7 +237,7 @@ export const OpenOnFocus = {
           open={open}
           onOpenChange={setOpen}
           disabled={args.disabled}
-          allowCustomValue={args.allowCustomValue}
+          enforceMatchingInputValue={args.enforceMatchingInputValue}
           openOnFocus={args.openOnFocus}
           openOnInput={args.openOnInput}
           autocompleteBehavior={args.autocompleteBehavior}
@@ -277,7 +277,7 @@ export const HighlightMatches = {
           inputValue={inputValue}
           onInputValueChange={setInputValue}
           disabled={args.disabled}
-          allowCustomValue={args.allowCustomValue}
+          enforceMatchingInputValue={args.enforceMatchingInputValue}
           openOnFocus={args.openOnFocus}
           openOnInput={args.openOnInput}
           autocompleteBehavior={args.autocompleteBehavior}
@@ -326,7 +326,7 @@ export const DisabledItems = {
           inputValue={inputValue}
           onInputValueChange={setInputValue}
           disabled={args.disabled}
-          allowCustomValue={args.allowCustomValue}
+          enforceMatchingInputValue={args.enforceMatchingInputValue}
           openOnFocus={args.openOnFocus}
           openOnInput={args.openOnInput}
           autocompleteBehavior={args.autocompleteBehavior}
@@ -375,7 +375,7 @@ export const WithTriggerAndCancel = {
           inputValue={inputValue}
           onInputValueChange={setInputValue}
           disabled={args.disabled}
-          allowCustomValue={args.allowCustomValue}
+          enforceMatchingInputValue={args.enforceMatchingInputValue}
           openOnFocus={args.openOnFocus}
           openOnInput={args.openOnInput}
           autocompleteBehavior={args.autocompleteBehavior}
@@ -434,7 +434,7 @@ export const Grouped = {
           inputValue={inputValue}
           onInputValueChange={setInputValue}
           disabled={args.disabled}
-          allowCustomValue={args.allowCustomValue}
+          enforceMatchingInputValue={args.enforceMatchingInputValue}
           openOnFocus={args.openOnFocus}
           openOnInput={args.openOnInput}
           autocompleteBehavior={args.autocompleteBehavior}
@@ -493,7 +493,7 @@ export const MultiSelect = {
           value={selectedValues}
           onValueChange={setSelectedValues}
           disabled={args.disabled}
-          allowCustomValue={args.allowCustomValue}
+          enforceMatchingInputValue={args.enforceMatchingInputValue}
           openOnFocus={args.openOnFocus}
           openOnInput={args.openOnInput}
           autocompleteBehavior={args.autocompleteBehavior}
@@ -563,7 +563,7 @@ export const AutocompleteBoth = {
           inputValue={inputValue}
           onInputValueChange={setInputValue}
           disabled={args.disabled}
-          allowCustomValue={args.allowCustomValue}
+          enforceMatchingInputValue={args.enforceMatchingInputValue}
           openOnFocus={args.openOnFocus}
           openOnInput={args.openOnInput}
           autocompleteBehavior={args.autocompleteBehavior}

@@ -194,11 +194,11 @@ interface ComboboxBaseProps {
 
   // Behavior
   /**
-   * Allow values not matching any item (React Aria: allowsCustomValue).
-   * When `false` (default), the input value is reverted to the selected item's text on blur.
-   * When `true`, any typed value is preserved on blur even if it doesn't match an item.
+   * When `true`, the input value is reverted to the selected item's text on blur
+   * if it doesn't match a valid item. When `false` (default), any typed value is
+   * preserved on blur.
    */
-  allowCustomValue?: boolean;
+  enforceMatchingInputValue?: boolean;
   /** Reset input text after selecting an item (defaults to true for multi-select) */
   resetInputOnSelect?: boolean;
   /** Open popover when input receives focus */
@@ -589,7 +589,7 @@ For multi-select, the native `<input>` value represents the current search text,
 ### Input Focused (popover closed)
 
 - **ArrowDown / ArrowUp / Alt+ArrowDown**: Open popover, highlight item per `initialHighlight` strategy
-- **Enter**: Always allows native form submission (does not `preventDefault`). If `allowCustomValue` is `false` and the current input value does not match any item's value, the input value is cleared before submission so that an invalid value is never submitted.
+- **Enter**: Always allows native form submission (does not `preventDefault`). If `enforceMatchingInputValue` is `true` and the current input value does not match any item's value, the input value is cleared before submission so that an invalid value is never submitted.
 - **Typing**: Updates input value. Opens popover if `openOnInput` is `true` (the default).
 
 ### Input Focused (popover open)
@@ -599,7 +599,7 @@ For multi-select, the native `<input>` value represents the current search text,
 - **Home**: Highlight first enabled item. Scrolls into view.
 - **End**: Highlight last enabled item. Scrolls into view.
 - **Enter**: Select highlighted item, close popover. When `autocompleteBehavior` is `"both"`, also accepts the inline completion.
-- **Escape**: Close popover. When `allowCustomValue` is `false`, revert input value to the selected item's text (or clear if no selection).
+- **Escape**: Close popover. When `enforceMatchingInputValue` is `true`, revert input value to the selected item's text (or clear if no selection).
 - **Tab**: Close popover, move focus naturally. If `autocompleteBehavior` is `"both"` and an inline completion is pending, accepts it before closing.
 - **Typing**: Updates input value, resets highlight to first matching item
 
@@ -726,7 +726,7 @@ Always link to the specific file and include the copyright holder. For React Ari
 
 ### Phase 1: Package scaffolding and core state
 
-Set up the package directory, `package.json`, `tsconfig.json`, `eslint.config.mjs`. Implement the `Combobox` root with `createContextScope`, legacy `createCollection`, and controllable state for `inputValue`, `value`, and `open`. Implement the `ComboboxProps` discriminated union (`ComboboxSingleProps | ComboboxMultipleProps`) with the `multiple` prop as the discriminant. Wire up `autocompleteBehavior`, `initialHighlight`, `openOnFocus`, `openOnInput`, `allowCustomValue`, and `resetInputOnSelect` props in context.
+Set up the package directory, `package.json`, `tsconfig.json`, `eslint.config.mjs`. Implement the `Combobox` root with `createContextScope`, legacy `createCollection`, and controllable state for `inputValue`, `value`, and `open`. Implement the `ComboboxProps` discriminated union (`ComboboxSingleProps | ComboboxMultipleProps`) with the `multiple` prop as the discriminant. Wire up `autocompleteBehavior`, `initialHighlight`, `openOnFocus`, `openOnInput`, `enforceMatchingInputValue`, and `resetInputOnSelect` props in context.
 
 ### Phase 2: Input, Anchor, Label
 
@@ -742,7 +742,7 @@ Implement `ComboboxItem`, `ComboboxItemText`, `ComboboxItemIndicator`. Wire up s
 
 ### Phase 5: Keyboard navigation (virtual focus)
 
-Implement arrow key navigation maintaining `aria-activedescendant`. Handle Home/End, Enter to select, Escape to close (with input revert when `allowCustomValue` is `false`), Tab to close. Use the collection to find next/previous enabled items. Implement the `initialHighlight` strategy (`"selected"`, `"first"`, `"none"`) to determine which item is highlighted when the popover opens. Implement explicit scroll-into-view (`element.scrollIntoView({ block: 'nearest' })`) on every highlight change. Handle `openOnInput` and `openOnFocus` for popover open triggers, including the **re-entrancy guard** for `openOnFocus` to prevent the popover from reopening when focus returns to the input after an intentional close. Study Ariakit's composite system (`packages/ariakit-react-core/src/composite/`) and React Aria's `useComboBox.ts` keyboard handler for browser-specific workarounds (e.g., Firefox `aria-activedescendant` behavior, preventing scroll on arrow keys, IME composition guards).
+Implement arrow key navigation maintaining `aria-activedescendant`. Handle Home/End, Enter to select, Escape to close (with input revert when `enforceMatchingInputValue` is `true`), Tab to close. Use the collection to find next/previous enabled items. Implement the `initialHighlight` strategy (`"selected"`, `"first"`, `"none"`) to determine which item is highlighted when the popover opens. Implement explicit scroll-into-view (`element.scrollIntoView({ block: 'nearest' })`) on every highlight change. Handle `openOnInput` and `openOnFocus` for popover open triggers, including the **re-entrancy guard** for `openOnFocus` to prevent the popover from reopening when focus returns to the input after an intentional close. Study Ariakit's composite system (`packages/ariakit-react-core/src/composite/`) and React Aria's `useComboBox.ts` keyboard handler for browser-specific workarounds (e.g., Firefox `aria-activedescendant` behavior, preventing scroll on arrow keys, IME composition guards).
 
 ### Phase 6: Supporting components
 
@@ -764,8 +764,8 @@ Implement inline completion behavior when `autocompleteBehavior` is `"both"`: au
 - **ARIA contract tests**: Assert correct roles (`combobox`, `listbox`, `option`, `group`), `aria-expanded`, `aria-activedescendant` (points to highlighted item ID), `aria-autocomplete`, `aria-controls`, `aria-selected`, `aria-disabled`, `aria-labelledby` on groups.
 - **Keyboard navigation**: ArrowDown/ArrowUp cycling (with and without `loop`), Home/End, Enter to select, Escape to close, Tab to close and move focus, Alt+ArrowDown to open. Verify no-ops on disabled items.
 - **IME composition**: Simulate `compositionstart` / `compositionupdate` / `compositionend` events. Verify that keyboard navigation and selection are suppressed during active composition, and that the input value updates correctly on `compositionend`.
-- **Selection behavior**: Single select (value updates, input text updates, popover closes). Multi-select (value toggles, popover stays open, `resetInputOnSelect`). `allowCustomValue` (input value preserved on blur, form submission includes custom text).
-- **Open/close triggers**: Typing opens popover (when `openOnInput` is true). `openOnFocus` opens on focus (with re-entrancy guard — does not reopen after intentional close). `openOnInput` opens on typing. Both can be enabled simultaneously. Trigger button opens (does not toggle/close). Outside click closes. Escape closes. Blur closes (with input value revert behavior governed by `allowCustomValue`).
+- **Selection behavior**: Single select (value updates, input text updates, popover closes). Multi-select (value toggles, popover stays open, `resetInputOnSelect`). `enforceMatchingInputValue` (input value reverted on blur when true, preserved when false).
+- **Open/close triggers**: Typing opens popover (when `openOnInput` is true). `openOnFocus` opens on focus (with re-entrancy guard — does not reopen after intentional close). `openOnInput` opens on typing. Both can be enabled simultaneously. Trigger button opens (does not toggle/close). Outside click closes. Escape closes. Blur closes (with input value revert behavior governed by `enforceMatchingInputValue`).
 - **Initial highlight**: `initialHighlight="selected"` highlights selected item on open, falls back to first. `initialHighlight="first"` always highlights first. `initialHighlight="none"` highlights nothing until arrow key press.
 - **Autocomplete behavior**: `autocompleteBehavior="list"` sets `aria-autocomplete="list"`. `autocompleteBehavior="both"` sets `aria-autocomplete="both"` and inline-completes the input. `autocompleteBehavior="none"` sets `aria-autocomplete="none"`.
 - **Scroll into view**: Highlighted item scrolls into view on every arrow key navigation, Home/End, and initial highlight on open.
