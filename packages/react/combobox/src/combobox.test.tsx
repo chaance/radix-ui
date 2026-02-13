@@ -228,7 +228,12 @@ describe('Multi-select', () => {
 describe('enforceMatchingInputValue', () => {
   afterEach(cleanup);
 
-  describe('when true', () => {
+  describe('when true + multi select', () => {
+    // TODO: Write these tests. This prop has no effect on multi select so
+    // assertions should be identical with true and false cases.
+  });
+
+  describe('when true + single select', () => {
     describe('with no selection value + un-matched input value', () => {
       it.todo('should have empty input and selection value on blur', async () => {
         const inputValue = ''; // TODO
@@ -298,7 +303,7 @@ describe('enforceMatchingInputValue', () => {
     it.todo('should allow an empty input as intentional deselection on blur');
   });
 
-  describe('when false (default)', () => {
+  describe('when false + single select', () => {
     describe('with no selection value + un-matched input value', () => {
       it.todo('should preserve input value and clear selection value on blur', async () => {
         const inputValue = ''; // TODO
