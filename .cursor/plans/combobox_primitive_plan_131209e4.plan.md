@@ -22,7 +22,7 @@ todos:
     status: completed
   - id: supporting-parts
     content: Implement ComboboxTrigger (open-only, focuses input), ComboboxCancel, ComboboxGroup, ComboboxGroupLabel, ComboboxSeparator
-    status: pending
+    status: completed
   - id: multi-select
     content: Implement multi-select via multiple prop (discriminated union types), toggle behavior, no bubble inputs
     status: pending

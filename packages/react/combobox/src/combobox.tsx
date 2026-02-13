@@ -63,11 +63,15 @@ type ComboboxContextValue = {
   loop: boolean;
   highlightedItemId: string;
   onHighlightedItemIdChange(id: string): void;
+  anchorRef: React.RefObject<HTMLDivElement | null>;
   inputRef: React.RefObject<ComboboxInputElement | null>;
   triggerRef: React.RefObject<ComboboxTriggerElement | null>;
   contentRef: React.RefObject<ComboboxContentElement | null>;
   isClosingRef: React.RefObject<boolean>;
   isComposingRef: React.RefObject<boolean>;
+  /** Caches the display text of the last selected item so it can be restored
+   *  on blur even when items are not mounted (e.g. popover closed). */
+  selectedTextRef: React.MutableRefObject<string>;
 };
 
 const [ComboboxProvider, useComboboxContext] =
@@ -256,6 +260,7 @@ const Combobox: React.FC<ComboboxProps> = (props: ScopedProps<ComboboxProps>) =>
 
   const [highlightedItemId, setHighlightedItemId] = React.useState('');
 
+  const anchorRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<ComboboxInputElement>(null);
   const triggerRef = React.useRef<ComboboxTriggerElement>(null);
   const contentRef = React.useRef<ComboboxContentElement>(null);
@@ -267,6 +272,10 @@ const Combobox: React.FC<ComboboxProps> = (props: ScopedProps<ComboboxProps>) =>
   // IME composition guard: prevents keyboard navigation/selection during
   // active composition
   const isComposingRef = React.useRef(false);
+
+  // Caches the display text of the currently selected item so that
+  // revertInputValue can restore it even when items are not in the DOM.
+  const selectedTextRef = React.useRef('');
 
   const contentId = useId();
   const inputId = useId();
@@ -297,11 +306,13 @@ const Combobox: React.FC<ComboboxProps> = (props: ScopedProps<ComboboxProps>) =>
         loop={loop}
         highlightedItemId={highlightedItemId}
         onHighlightedItemIdChange={setHighlightedItemId}
+        anchorRef={anchorRef}
         inputRef={inputRef}
         triggerRef={triggerRef}
         contentRef={contentRef}
         isClosingRef={isClosingRef}
         isComposingRef={isComposingRef}
+        selectedTextRef={selectedTextRef}
       >
         <Collection.Provider scope={__scopeCombobox}>{children}</Collection.Provider>
       </ComboboxProvider>
@@ -349,8 +360,10 @@ interface ComboboxAnchorProps extends PrimitiveDivProps {}
 const ComboboxAnchor = React.forwardRef<HTMLDivElement, ComboboxAnchorProps>(
   (props: ScopedProps<ComboboxAnchorProps>, forwardedRef) => {
     const { __scopeCombobox, ...anchorProps } = props;
+    const context = useComboboxContext(ANCHOR_NAME, __scopeCombobox);
     const popperScope = usePopperScope(__scopeCombobox);
-    return <PopperPrimitive.Anchor {...popperScope} {...anchorProps} ref={forwardedRef} />;
+    const composedRef = useComposedRefs(forwardedRef, context.anchorRef);
+    return <PopperPrimitive.Anchor {...popperScope} {...anchorProps} ref={composedRef} />;
   },
 );
 
@@ -395,7 +408,6 @@ const ComboboxInput = React.forwardRef<ComboboxInputElement, ComboboxInputProps>
       open: isOpen,
       openOnFocus,
       openOnInput,
-      triggerRef,
       contentRef,
       allowCustomValue,
       multiple,
@@ -420,7 +432,7 @@ const ComboboxInput = React.forwardRef<ComboboxInputElement, ComboboxInputProps>
         aria-labelledby={labelId}
         data-radix-combobox-open-state={isOpen ? 'open' : 'closed'}
         data-radix-combobox-disabled={disabled ? '' : undefined}
-        disabled={disabled}
+        disabled={disabled || undefined}
         {...inputProps}
         ref={composedRef}
         value={inputValue}
@@ -567,13 +579,14 @@ const ComboboxInput = React.forwardRef<ComboboxInputElement, ComboboxInputProps>
           }
         })}
         onBlur={composeEventHandlers(inputProps.onBlur, (event) => {
-          // Don't close if focus moves to the trigger or content (still within
-          // the combobox). This prevents close-then-reopen flicker when
-          // clicking the trigger button.
+          // Don't close if focus moves to another element within the combobox
+          // (anchor houses the input, trigger, and cancel; content is in a
+          // portal). This prevents close-then-reopen flicker when clicking the
+          // trigger or tabbing to the cancel button.
           const relatedTarget = event.relatedTarget as Node | null;
           if (relatedTarget) {
             if (
-              triggerRef.current?.contains(relatedTarget) ||
+              context.anchorRef.current?.contains(relatedTarget) ||
               contentRef.current?.contains(relatedTarget)
             ) {
               return;
@@ -616,8 +629,35 @@ type PrimitiveButtonProps = React.ComponentPropsWithoutRef<typeof Primitive.butt
 interface ComboboxTriggerProps extends PrimitiveButtonProps {}
 
 const ComboboxTrigger = React.forwardRef<ComboboxTriggerElement, ComboboxTriggerProps>(
-  (_props: ScopedProps<ComboboxTriggerProps>, _ref) => {
-    throw new Error(`${TRIGGER_NAME}: not implemented`);
+  (props: ScopedProps<ComboboxTriggerProps>, forwardedRef) => {
+    const { __scopeCombobox, ...triggerProps } = props;
+    const { contentId, disabled, inputRef, onOpenChange, open, triggerRef } = useComboboxContext(
+      TRIGGER_NAME,
+      __scopeCombobox,
+    );
+    const composedRef = useComposedRefs(forwardedRef, triggerRef);
+
+    return (
+      <Primitive.button
+        type="button"
+        aria-label="Show suggestions"
+        aria-controls={open ? contentId : undefined}
+        aria-expanded={open}
+        tabIndex={-1}
+        data-radix-combobox-open-state={open ? 'open' : 'closed'}
+        data-radix-combobox-disabled={disabled ? '' : undefined}
+        disabled={disabled || undefined}
+        {...triggerProps}
+        ref={composedRef}
+        onClick={composeEventHandlers(triggerProps.onClick, () => {
+          onOpenChange(true);
+          // Move focus to the input after opening. The input is the primary
+          // focusable element in a combobox; the trigger is a convenience
+          // affordance that should not retain focus.
+          inputRef.current?.focus();
+        })}
+      />
+    );
   },
 );
 
@@ -632,8 +672,27 @@ const CANCEL_NAME = 'ComboboxCancel';
 interface ComboboxCancelProps extends PrimitiveButtonProps {}
 
 const ComboboxCancel = React.forwardRef<HTMLButtonElement, ComboboxCancelProps>(
-  (_props: ScopedProps<ComboboxCancelProps>, _ref) => {
-    throw new Error(`${CANCEL_NAME}: not implemented`);
+  (props: ScopedProps<ComboboxCancelProps>, forwardedRef) => {
+    const { __scopeCombobox, ...cancelProps } = props;
+    const { disabled, onInputValueChange, inputRef } = useComboboxContext(
+      CANCEL_NAME,
+      __scopeCombobox,
+    );
+
+    return (
+      <Primitive.button
+        type="button"
+        aria-label="Clear"
+        data-radix-combobox-disabled={disabled ? '' : undefined}
+        disabled={disabled || undefined}
+        {...cancelProps}
+        ref={forwardedRef}
+        onClick={composeEventHandlers(cancelProps.onClick, () => {
+          onInputValueChange('');
+          inputRef.current?.focus();
+        })}
+      />
+    );
   },
 );
 
@@ -766,8 +825,11 @@ const ComboboxContentImpl = React.forwardRef<ComboboxContentElement, ComboboxCon
       let cancelled = false;
       queueMicrotask(() => {
         if (cancelled) return;
-        const { initialHighlight: strategy, multiple: isMulti, value: currentValue } =
-          initialHighlightRef.current;
+        const {
+          initialHighlight: strategy,
+          multiple: isMulti,
+          value: currentValue,
+        } = initialHighlightRef.current;
         if (strategy === 'none') return;
 
         const items = getItems();
@@ -873,11 +935,21 @@ const ComboboxContentImpl = React.forwardRef<ComboboxContentElement, ComboboxCon
 
 const GROUP_NAME = 'ComboboxGroup';
 
+type ComboboxGroupContextValue = { id: string };
+const [ComboboxGroupProvider, useComboboxGroupContext] =
+  createComboboxContext<ComboboxGroupContextValue>(GROUP_NAME);
+
 interface ComboboxGroupProps extends PrimitiveDivProps {}
 
 const ComboboxGroup = React.forwardRef<HTMLDivElement, ComboboxGroupProps>(
-  (_props: ScopedProps<ComboboxGroupProps>, _ref) => {
-    throw new Error(`${GROUP_NAME}: not implemented`);
+  (props: ScopedProps<ComboboxGroupProps>, forwardedRef) => {
+    const { __scopeCombobox, ...groupProps } = props;
+    const groupId = useId();
+    return (
+      <ComboboxGroupProvider scope={__scopeCombobox} id={groupId}>
+        <Primitive.div role="group" aria-labelledby={groupId} {...groupProps} ref={forwardedRef} />
+      </ComboboxGroupProvider>
+    );
   },
 );
 
@@ -892,8 +964,10 @@ const GROUP_LABEL_NAME = 'ComboboxGroupLabel';
 interface ComboboxGroupLabelProps extends PrimitiveDivProps {}
 
 const ComboboxGroupLabel = React.forwardRef<HTMLDivElement, ComboboxGroupLabelProps>(
-  (_props: ScopedProps<ComboboxGroupLabelProps>, _ref) => {
-    throw new Error(`${GROUP_LABEL_NAME}: not implemented`);
+  (props: ScopedProps<ComboboxGroupLabelProps>, forwardedRef) => {
+    const { __scopeCombobox, ...labelProps } = props;
+    const groupContext = useComboboxGroupContext(GROUP_LABEL_NAME, __scopeCombobox);
+    return <Primitive.div id={groupContext.id} {...labelProps} ref={forwardedRef} />;
   },
 );
 
@@ -955,6 +1029,7 @@ const ComboboxItem = React.forwardRef<ComboboxItemElement, ComboboxItemProps>(
       isClosingRef,
       inputRef,
       onOpenChange,
+      selectedTextRef,
     } = useComboboxContext(ITEM_NAME, __scopeCombobox);
     const textId = useId();
     const itemId = useId();
@@ -976,8 +1051,10 @@ const ComboboxItem = React.forwardRef<ComboboxItemElement, ComboboxItemProps>(
           : [...currentValues, value];
         onValueChange(newValues);
       } else {
-        // Single select: set the value
+        // Single select: set the value and cache its display text so it can
+        // be restored on blur even after items unmount.
         onValueChange(value);
+        selectedTextRef.current = textValue;
       }
 
       // Update input value based on resetInputOnSelect
@@ -1134,8 +1211,9 @@ const SEPARATOR_NAME = 'ComboboxSeparator';
 interface ComboboxSeparatorProps extends PrimitiveDivProps {}
 
 const ComboboxSeparator = React.forwardRef<HTMLDivElement, ComboboxSeparatorProps>(
-  (_props: ScopedProps<ComboboxSeparatorProps>, _ref) => {
-    throw new Error(`${SEPARATOR_NAME}: not implemented`);
+  (props: ScopedProps<ComboboxSeparatorProps>, forwardedRef) => {
+    const { __scopeCombobox, ...separatorProps } = props;
+    return <Primitive.div aria-hidden {...separatorProps} ref={forwardedRef} />;
   },
 );
 
@@ -1164,7 +1242,11 @@ ComboboxArrow.displayName = ARROW_NAME;
  * Utilities
  * -----------------------------------------------------------------------------------------------*/
 
-type CollectionItem = { ref: React.RefObject<HTMLElement | null>; disabled: boolean; value: string };
+type CollectionItem = {
+  ref: React.RefObject<HTMLElement | null>;
+  disabled: boolean;
+  value: string;
+};
 
 /**
  * Find the index of the currently highlighted item in a list of collection
@@ -1215,9 +1297,13 @@ function revertInputValue(
   } else {
     const selectedValue = context.value as string | null;
     if (selectedValue != null) {
+      // Try to look up the selected item's display text from the collection.
+      // If items aren't mounted (popover closed), fall back to the cached
+      // text from the last selection.
       const items = getItems();
       const selectedItem = items.find((item) => item.value === selectedValue);
-      context.onInputValueChange(selectedItem?.textValue ?? '');
+      const displayText = selectedItem?.textValue ?? context.selectedTextRef.current;
+      context.onInputValueChange(displayText);
     } else {
       context.onInputValueChange('');
     }
