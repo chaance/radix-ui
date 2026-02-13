@@ -13,7 +13,7 @@ todos:
     status: completed
   - id: content-positioning
     content: Implement ComboboxPortal, ComboboxContent (Popper + DismissableLayer + role=listbox + Presence), ComboboxArrow
-    status: pending
+    status: completed
   - id: items-selection
     content: Implement ComboboxItem, ComboboxItemText, ComboboxItemIndicator with selection behavior and data attributes
     status: pending
@@ -614,12 +614,12 @@ For multi-select, the native `<input>` value represents the current search text,
 
 The Combobox primitive uses **primitive-prefixed data attributes** (`data-radix-combobox-*`) to avoid collisions when composing components via `asChild`. This is a new convention that future Radix primitives will adopt; existing primitives will be migrated in a future major version.
 
-| Attribute | Used on | Values |
-| --- | --- | --- |
-| `data-radix-combobox-open-state` | Input, Trigger, Content | `"open"` \| `"closed"` |
-| `data-radix-combobox-disabled` | Input, Trigger, Cancel, Item | present when disabled |
-| `data-radix-combobox-highlighted` | Item | present when virtually focused |
-| `data-radix-combobox-selected-state` | Item | `"checked"` \| `"unchecked"` |
+| Attribute                            | Used on                      | Values                         |
+| ------------------------------------ | ---------------------------- | ------------------------------ |
+| `data-radix-combobox-open-state`     | Input, Trigger, Content      | `"open"` \| `"closed"`         |
+| `data-radix-combobox-disabled`       | Input, Trigger, Cancel, Item | present when disabled          |
+| `data-radix-combobox-highlighted`    | Item                         | present when virtually focused |
+| `data-radix-combobox-selected-state` | Item                         | `"checked"` \| `"unchecked"`   |
 
 ## File Structure
 

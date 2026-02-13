@@ -34,7 +34,19 @@ export const Basic = () => {
         <Combobox.Anchor className={styles.anchor}>
           <Combobox.Input className={styles.input} placeholder="Search fruits…" />
         </Combobox.Anchor>
-        {/* Content/Items will be added once those phases are implemented */}
+        <Combobox.Portal>
+          <Combobox.Content className={styles.content} sideOffset={4}>
+            {matches.length > 0 ? (
+              matches.map((fruit) => (
+                <div key={fruit} className={styles.item}>
+                  {fruit}
+                </div>
+              ))
+            ) : (
+              <div style={{ padding: '8px 12px', color: '#999', fontSize: 14 }}>No results</div>
+            )}
+          </Combobox.Content>
+        </Combobox.Portal>
       </Combobox.Root>
 
       <div style={{ marginTop: 16, fontSize: 14, color: '#666' }}>
@@ -84,6 +96,9 @@ export const Controlled = () => {
 export const OpenOnFocus = () => {
   const [inputValue, setInputValue] = React.useState('');
   const [open, setOpen] = React.useState(false);
+  const matches = inputValue
+    ? FRUITS.filter((fruit) => fruit.toLowerCase().includes(inputValue.toLowerCase()))
+    : FRUITS;
 
   return (
     <div style={{ padding: 50 }}>
@@ -98,6 +113,15 @@ export const OpenOnFocus = () => {
         <Combobox.Anchor className={styles.anchor}>
           <Combobox.Input className={styles.input} placeholder="Focus me…" />
         </Combobox.Anchor>
+        <Combobox.Portal>
+          <Combobox.Content className={styles.content} sideOffset={4}>
+            {matches.map((fruit) => (
+              <div key={fruit} className={styles.item}>
+                {fruit}
+              </div>
+            ))}
+          </Combobox.Content>
+        </Combobox.Portal>
       </Combobox.Root>
 
       <div style={{ marginTop: 16, fontSize: 14, color: '#666' }}>

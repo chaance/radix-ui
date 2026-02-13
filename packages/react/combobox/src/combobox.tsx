@@ -4,13 +4,15 @@ import { createCollection } from '@radix-ui/react-collection';
 import { useComposedRefs } from '@radix-ui/react-compose-refs';
 import { createContextScope } from '@radix-ui/react-context';
 import { useDirection } from '@radix-ui/react-direction';
+import { DismissableLayer } from '@radix-ui/react-dismissable-layer';
 import { useId } from '@radix-ui/react-id';
 import * as PopperPrimitive from '@radix-ui/react-popper';
 import { createPopperScope } from '@radix-ui/react-popper';
+import { Portal as PortalPrimitive } from '@radix-ui/react-portal';
+import { Presence } from '@radix-ui/react-presence';
 import { Primitive } from '@radix-ui/react-primitive';
 import { useControllableState } from '@radix-ui/react-use-controllable-state';
 
-import type { DismissableLayer } from '@radix-ui/react-dismissable-layer';
 import type { Scope } from '@radix-ui/react-context';
 
 type Direction = 'ltr' | 'rtl';
@@ -522,21 +524,35 @@ ComboboxCancel.displayName = CANCEL_NAME;
 
 const PORTAL_NAME = 'ComboboxPortal';
 
+type PortalContextValue = { forceMount?: true };
+const [PortalProvider, usePortalContext] = createComboboxContext<PortalContextValue>(PORTAL_NAME, {
+  forceMount: undefined,
+});
+
+type PortalProps = React.ComponentPropsWithoutRef<typeof PortalPrimitive>;
 interface ComboboxPortalProps {
   children?: React.ReactNode;
   /**
    * Target container for the portal
    * @default document.body
    */
-  container?: Element | DocumentFragment | null;
+  container?: PortalProps['container'];
   /** Force mount the portal */
   forceMount?: true;
 }
 
-const ComboboxPortal: React.FC<ComboboxPortalProps> = (
-  _props: ScopedProps<ComboboxPortalProps>,
-) => {
-  throw new Error(`${PORTAL_NAME}: not implemented`);
+const ComboboxPortal: React.FC<ComboboxPortalProps> = (props: ScopedProps<ComboboxPortalProps>) => {
+  const { __scopeCombobox, forceMount, children, container } = props;
+  const context = useComboboxContext(PORTAL_NAME, __scopeCombobox);
+  return (
+    <PortalProvider scope={__scopeCombobox} forceMount={forceMount}>
+      <Presence present={forceMount || context.open}>
+        <PortalPrimitive asChild container={container}>
+          {children}
+        </PortalPrimitive>
+      </Presence>
+    </PortalProvider>
+  );
 };
 
 ComboboxPortal.displayName = PORTAL_NAME;
@@ -550,22 +566,132 @@ const CONTENT_NAME = 'ComboboxContent';
 type PopperContentProps = React.ComponentPropsWithoutRef<typeof PopperPrimitive.Content>;
 type DismissableLayerProps = React.ComponentPropsWithoutRef<typeof DismissableLayer>;
 
-interface ComboboxContentProps
+interface ComboboxContentImplProps
   extends Omit<PopperContentProps, 'onPlaced'>,
-    Omit<DismissableLayerProps, 'onDismiss'> {
+    Omit<DismissableLayerProps, 'onDismiss'> {}
+
+interface ComboboxContentProps extends ComboboxContentImplProps {
   /** Force mount the content */
   forceMount?: true;
-  /** Event handler called when auto-focusing on close */
-  onCloseAutoFocus?: (event: Event) => void;
 }
 
 const ComboboxContent = React.forwardRef<ComboboxContentElement, ComboboxContentProps>(
-  (_props: ScopedProps<ComboboxContentProps>, _ref) => {
-    throw new Error(`${CONTENT_NAME}: not implemented`);
+  (props: ScopedProps<ComboboxContentProps>, forwardedRef) => {
+    const portalContext = usePortalContext(CONTENT_NAME, props.__scopeCombobox);
+    const { forceMount = portalContext.forceMount, ...contentProps } = props;
+    const context = useComboboxContext(CONTENT_NAME, props.__scopeCombobox);
+    return (
+      <Presence present={forceMount || context.open}>
+        <ComboboxContentImpl {...contentProps} ref={forwardedRef} />
+      </Presence>
+    );
   },
 );
 
 ComboboxContent.displayName = CONTENT_NAME;
+
+/* -------------------------------------------------------------------------------------------------
+ * ComboboxContentImpl
+ * -----------------------------------------------------------------------------------------------*/
+
+const ComboboxContentImpl = React.forwardRef<ComboboxContentElement, ComboboxContentImplProps>(
+  (props: ScopedProps<ComboboxContentImplProps>, forwardedRef) => {
+    const {
+      __scopeCombobox,
+      onEscapeKeyDown,
+      onPointerDownOutside,
+      onFocusOutside,
+      onInteractOutside,
+      ...contentProps
+    } = props;
+    const {
+      contentId,
+      labelId,
+      multiple,
+      open,
+      contentRef,
+      inputRef,
+      triggerRef,
+      isClosingRef,
+      onOpenChange,
+    } = useComboboxContext(CONTENT_NAME, __scopeCombobox);
+    const popperScope = usePopperScope(__scopeCombobox);
+    const composedRef = useComposedRefs(forwardedRef, contentRef);
+    const hasPointerDownOutsideRef = React.useRef(false);
+
+    return (
+      <Collection.Slot scope={__scopeCombobox}>
+        <DismissableLayer
+          asChild
+          disableOutsidePointerEvents={false}
+          onEscapeKeyDown={onEscapeKeyDown}
+          onPointerDownOutside={onPointerDownOutside}
+          onFocusOutside={onFocusOutside}
+          onInteractOutside={(event) => {
+            onInteractOutside?.(event);
+
+            if (!event.defaultPrevented) {
+              if (event.detail.originalEvent.type === 'pointerdown') {
+                hasPointerDownOutsideRef.current = true;
+              }
+            }
+
+            // Prevent dismissing when clicking the input or trigger, as those
+            // have their own open/close logic. Without this, clicking the
+            // trigger would dismiss and immediately reopen the content.
+            const target = event.target as HTMLElement;
+            if (inputRef.current?.contains(target) || triggerRef.current?.contains(target)) {
+              event.preventDefault();
+            }
+
+            // On Safari if the trigger is inside a container with tabIndex={0},
+            // when clicked we will get the pointer down outside event on the
+            // trigger, but then a subsequent focus outside event on the
+            // container. We ignore any focus outside event when we've already
+            // had a pointer down outside event.
+            if (event.detail.originalEvent.type === 'focusin' && hasPointerDownOutsideRef.current) {
+              event.preventDefault();
+            }
+          }}
+          onDismiss={() => {
+            isClosingRef.current = true;
+            onOpenChange(false);
+            requestAnimationFrame(() => {
+              isClosingRef.current = false;
+            });
+          }}
+        >
+          <PopperPrimitive.Content
+            role="listbox"
+            id={contentId}
+            aria-labelledby={labelId}
+            aria-multiselectable={multiple || undefined}
+            data-radix-combobox-open-state={open ? 'open' : 'closed'}
+            {...popperScope}
+            {...contentProps}
+            ref={composedRef}
+            style={{
+              ...contentProps.style,
+              // Re-namespace Popper's CSS custom properties for the combobox
+              ...{
+                '--radix-combobox-content-transform-origin': 'var(--radix-popper-transform-origin)',
+                '--radix-combobox-content-available-width': 'var(--radix-popper-available-width)',
+                '--radix-combobox-content-available-height': 'var(--radix-popper-available-height)',
+                '--radix-combobox-anchor-width': 'var(--radix-popper-anchor-width)',
+                '--radix-combobox-anchor-height': 'var(--radix-popper-anchor-height)',
+              },
+            }}
+            onPointerDown={composeEventHandlers(contentProps.onPointerDown, (event) => {
+              // Prevent focus from moving to content when clicking items. Focus
+              // must stay on the input for the virtual focus pattern.
+              event.preventDefault();
+            })}
+          />
+        </DismissableLayer>
+      </Collection.Slot>
+    );
+  },
+);
 
 /* -------------------------------------------------------------------------------------------------
  * ComboboxGroup
@@ -703,8 +829,10 @@ type PopperArrowProps = React.ComponentPropsWithoutRef<typeof PopperPrimitive.Ar
 interface ComboboxArrowProps extends PopperArrowProps {}
 
 const ComboboxArrow = React.forwardRef<SVGSVGElement, ComboboxArrowProps>(
-  (_props: ScopedProps<ComboboxArrowProps>, _ref) => {
-    throw new Error(`${ARROW_NAME}: not implemented`);
+  (props: ScopedProps<ComboboxArrowProps>, forwardedRef) => {
+    const { __scopeCombobox, ...arrowProps } = props;
+    const popperScope = usePopperScope(__scopeCombobox);
+    return <PopperPrimitive.Arrow {...popperScope} {...arrowProps} ref={forwardedRef} />;
   },
 );
 
