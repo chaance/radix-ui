@@ -332,6 +332,66 @@ export const Grouped = () => {
   );
 };
 
+export const MultiSelect = () => {
+  const [inputValue, setInputValue] = React.useState('');
+  const [selectedValues, setSelectedValues] = React.useState<string[]>([]);
+  const matches = inputValue
+    ? FRUITS.filter((fruit) => fruit.toLowerCase().includes(inputValue.toLowerCase()))
+    : FRUITS;
+
+  return (
+    <div style={{ padding: 50 }}>
+      <Combobox.Root
+        multiple
+        inputValue={inputValue}
+        onInputValueChange={setInputValue}
+        value={selectedValues}
+        onValueChange={setSelectedValues}
+      >
+        <Combobox.Label className={styles.label}>Favorite fruits (multi-select)</Combobox.Label>
+        {selectedValues.length > 0 && (
+          <div className={styles.tags}>
+            {selectedValues.map((val) => (
+              <span key={val} className={styles.tag}>
+                {val}
+                <button
+                  className={styles.tagRemove}
+                  aria-label={`Remove ${val}`}
+                  onClick={() => setSelectedValues((prev) => prev.filter((v) => v !== val))}
+                >
+                  ✕
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+        <Combobox.Anchor className={styles.anchor}>
+          <Combobox.Input className={styles.input} placeholder="Search fruits…" />
+          {inputValue && (
+            <Combobox.Cancel className={styles.cancel} aria-label="Clear input">
+              ✕
+            </Combobox.Cancel>
+          )}
+        </Combobox.Anchor>
+        <Combobox.Portal>
+          <Combobox.Content className={styles.content} sideOffset={4}>
+            {matches.length > 0 ? (
+              matches.map((fruit) => (
+                <Combobox.Item key={fruit} value={fruit} className={styles.item}>
+                  <Combobox.ItemText>{fruit}</Combobox.ItemText>
+                  <Combobox.ItemIndicator className={styles.itemIndicator}>✓</Combobox.ItemIndicator>
+                </Combobox.Item>
+              ))
+            ) : (
+              <div style={{ padding: '8px 12px', color: '#999', fontSize: 14 }}>No results</div>
+            )}
+          </Combobox.Content>
+        </Combobox.Portal>
+      </Combobox.Root>
+    </div>
+  );
+};
+
 export const Disabled = () => {
   return (
     <div style={{ padding: 50 }}>

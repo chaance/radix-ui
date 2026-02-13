@@ -25,7 +25,7 @@ todos:
     status: completed
   - id: multi-select
     content: Implement multi-select via multiple prop (discriminated union types), toggle behavior, no bubble inputs
-    status: pending
+    status: completed
   - id: autocomplete-both
     content: Implement autocompleteBehavior="both" inline completion (auto-fill input with best match, select completed portion, handle backspace/IME)
     status: pending

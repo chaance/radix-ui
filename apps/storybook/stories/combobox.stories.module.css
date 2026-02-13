@@ -137,6 +137,43 @@
   stroke-width: 1px;
 }
 
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 6px;
+  font-size: 12px;
+  line-height: 1.4;
+  background-color: royalblue;
+  color: white;
+  border-radius: 4px;
+}
+
+.tagRemove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 10px;
+  line-height: 1;
+  opacity: 0.8;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
 /* Highlighted text matches within ComboboxItemText */
 [data-radix-combobox-highlighted-text] {
   font-weight: 700;

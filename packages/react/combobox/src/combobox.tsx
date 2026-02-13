@@ -1071,10 +1071,11 @@ const ComboboxItem = React.forwardRef<ComboboxItemElement, ComboboxItemProps>(
         requestAnimationFrame(() => {
           isClosingRef.current = false;
         });
+        // Clear the highlight after single-select since the popover closes.
+        onHighlightedItemIdChange('');
       }
-
-      // Clear the highlight after selection
-      onHighlightedItemIdChange('');
+      // In multi-select the popover stays open, so keep the highlight on the
+      // just-toggled item to allow continued keyboard selection.
 
       // Return focus to the input
       inputRef.current?.focus();
