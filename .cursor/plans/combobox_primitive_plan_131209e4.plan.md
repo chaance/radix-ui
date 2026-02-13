@@ -10,7 +10,7 @@ todos:
     status: completed
   - id: input-anchor-label
     content: Implement ComboboxInput (role=combobox, aria-activedescendant, aria-autocomplete from autocompleteBehavior), ComboboxAnchor (Popper anchor), ComboboxLabel
-    status: pending
+    status: completed
   - id: content-positioning
     content: Implement ComboboxPortal, ComboboxContent (Popper + DismissableLayer + role=listbox + Presence), ComboboxArrow
     status: pending

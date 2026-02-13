@@ -1,14 +1,16 @@
 import * as React from 'react';
+import { composeEventHandlers } from '@radix-ui/primitive';
 import { createCollection } from '@radix-ui/react-collection';
+import { useComposedRefs } from '@radix-ui/react-compose-refs';
 import { createContextScope } from '@radix-ui/react-context';
 import { useDirection } from '@radix-ui/react-direction';
-import type { DismissableLayer } from '@radix-ui/react-dismissable-layer';
 import { useId } from '@radix-ui/react-id';
 import * as PopperPrimitive from '@radix-ui/react-popper';
 import { createPopperScope } from '@radix-ui/react-popper';
-import type { Primitive } from '@radix-ui/react-primitive';
+import { Primitive } from '@radix-ui/react-primitive';
 import { useControllableState } from '@radix-ui/react-use-controllable-state';
 
+import type { DismissableLayer } from '@radix-ui/react-dismissable-layer';
 import type { Scope } from '@radix-ui/react-context';
 
 type Direction = 'ltr' | 'rtl';
@@ -62,6 +64,8 @@ type ComboboxContextValue = {
   inputRef: React.RefObject<ComboboxInputElement | null>;
   triggerRef: React.RefObject<ComboboxTriggerElement | null>;
   contentRef: React.RefObject<ComboboxContentElement | null>;
+  isClosingRef: React.RefObject<boolean>;
+  isComposingRef: React.RefObject<boolean>;
 };
 
 const [ComboboxProvider, useComboboxContext] =
@@ -251,6 +255,14 @@ const Combobox: React.FC<ComboboxProps> = (props: ScopedProps<ComboboxProps>) =>
   const triggerRef = React.useRef<ComboboxTriggerElement>(null);
   const contentRef = React.useRef<ComboboxContentElement>(null);
 
+  // Re-entrancy guard for openOnFocus: prevents the popover from reopening
+  // when focus returns to the input after an intentional close
+  const isClosingRef = React.useRef(false);
+
+  // IME composition guard: prevents keyboard navigation/selection during
+  // active composition
+  const isComposingRef = React.useRef(false);
+
   const contentId = useId();
   const inputId = useId();
   const labelId = useId();
@@ -283,6 +295,8 @@ const Combobox: React.FC<ComboboxProps> = (props: ScopedProps<ComboboxProps>) =>
         inputRef={inputRef}
         triggerRef={triggerRef}
         contentRef={contentRef}
+        isClosingRef={isClosingRef}
+        isComposingRef={isComposingRef}
       >
         <Collection.Provider scope={__scopeCombobox}>{children}</Collection.Provider>
       </ComboboxProvider>
@@ -302,8 +316,17 @@ type PrimitiveLabelProps = React.ComponentPropsWithoutRef<typeof Primitive.label
 interface ComboboxLabelProps extends PrimitiveLabelProps {}
 
 const ComboboxLabel = React.forwardRef<HTMLLabelElement, ComboboxLabelProps>(
-  (_props: ScopedProps<ComboboxLabelProps>, _ref) => {
-    throw new Error(`${LABEL_NAME}: not implemented`);
+  (props: ScopedProps<ComboboxLabelProps>, forwardedRef) => {
+    const { __scopeCombobox, ...labelProps } = props;
+    const context = useComboboxContext(LABEL_NAME, __scopeCombobox);
+    return (
+      <Primitive.label
+        id={context.labelId}
+        htmlFor={context.inputId}
+        {...labelProps}
+        ref={forwardedRef}
+      />
+    );
   },
 );
 
@@ -319,8 +342,10 @@ type PrimitiveDivProps = React.ComponentPropsWithoutRef<typeof Primitive.div>;
 interface ComboboxAnchorProps extends PrimitiveDivProps {}
 
 const ComboboxAnchor = React.forwardRef<HTMLDivElement, ComboboxAnchorProps>(
-  (_props: ScopedProps<ComboboxAnchorProps>, _ref) => {
-    throw new Error(`${ANCHOR_NAME}: not implemented`);
+  (props: ScopedProps<ComboboxAnchorProps>, forwardedRef) => {
+    const { __scopeCombobox, ...anchorProps } = props;
+    const popperScope = usePopperScope(__scopeCombobox);
+    return <PopperPrimitive.Anchor {...popperScope} {...anchorProps} ref={forwardedRef} />;
   },
 );
 
@@ -333,11 +358,126 @@ ComboboxAnchor.displayName = ANCHOR_NAME;
 const INPUT_NAME = 'ComboboxInput';
 
 type PrimitiveInputProps = React.ComponentPropsWithoutRef<typeof Primitive.input>;
-interface ComboboxInputProps extends PrimitiveInputProps {}
+interface ComboboxInputProps
+  extends Omit<PrimitiveInputProps, 'value' | 'defaultValue' | 'checked'> {}
 
 const ComboboxInput = React.forwardRef<ComboboxInputElement, ComboboxInputProps>(
-  (_props: ScopedProps<ComboboxInputProps>, _ref) => {
-    throw new Error(`${INPUT_NAME}: not implemented`);
+  (props: ScopedProps<ComboboxInputProps>, forwardedRef) => {
+    const {
+      __scopeCombobox,
+      // @ts-expect-error: Value is passed from the root. We destructure it here
+      // to prevent incorrect usage from causing weird bugs.
+      value: _value,
+      // @ts-expect-error
+      defaultValue: _defaultValue,
+      ...inputProps
+    } = props;
+    const {
+      autocompleteBehavior,
+      contentId,
+      disabled,
+      highlightedItemId,
+      inputId,
+      inputRef,
+      inputValue,
+      isClosingRef,
+      labelId,
+      onInputValueChange,
+      onOpenChange,
+      open: isOpen,
+      openOnFocus,
+      openOnInput,
+      triggerRef,
+      contentRef,
+      allowCustomValue,
+      multiple,
+      value,
+      isComposingRef,
+    } = useComboboxContext(INPUT_NAME, __scopeCombobox);
+    const getItems = useCollection(__scopeCombobox);
+    const composedRef = useComposedRefs(forwardedRef, inputRef);
+
+    return (
+      <Primitive.input
+        autoComplete="off"
+        autoCorrect="off"
+        spellCheck="false"
+        role="combobox"
+        type="text"
+        id={inputId}
+        aria-expanded={isOpen}
+        aria-activedescendant={highlightedItemId || undefined}
+        aria-autocomplete={autocompleteBehavior}
+        aria-controls={isOpen ? contentId : undefined}
+        aria-labelledby={labelId}
+        data-radix-combobox-open-state={isOpen ? 'open' : 'closed'}
+        data-radix-combobox-disabled={disabled ? '' : undefined}
+        disabled={disabled}
+        {...inputProps}
+        ref={composedRef}
+        value={inputValue}
+        onChange={composeEventHandlers(inputProps.onChange, (event) => {
+          const nativeEvent = event.nativeEvent as InputEvent;
+          onInputValueChange(event.target.value);
+
+          // Open the popover when the user types, unless mid-composition
+          if (openOnInput && !isOpen && !nativeEvent.isComposing) {
+            onOpenChange(true);
+          }
+        })}
+        onFocus={composeEventHandlers(inputProps.onFocus, () => {
+          // Re-entrancy guard: don't reopen if we just closed intentionally
+          if (openOnFocus && !isOpen && !isClosingRef.current) {
+            onOpenChange(true);
+          }
+        })}
+        onBlur={composeEventHandlers(inputProps.onBlur, (event) => {
+          // Don't close if focus moves to the trigger or content (still within
+          // the combobox). This prevents close-then-reopen flicker when
+          // clicking the trigger button.
+          const relatedTarget = event.relatedTarget as Node | null;
+          if (relatedTarget) {
+            if (
+              triggerRef.current?.contains(relatedTarget) ||
+              contentRef.current?.contains(relatedTarget)
+            ) {
+              return;
+            }
+          }
+
+          if (isOpen) {
+            isClosingRef.current = true;
+            onOpenChange(false);
+            requestAnimationFrame(() => {
+              isClosingRef.current = false;
+            });
+          }
+
+          // When allowCustomValue is false, revert the input to the selected
+          // item's text (single-select) or clear it (multi-select) on blur
+          if (!allowCustomValue) {
+            if (multiple) {
+              onInputValueChange('');
+            } else {
+              const selectedValue = value as string;
+              if (selectedValue) {
+                const items = getItems();
+                const selectedItem = items.find((item) => item.value === selectedValue);
+                onInputValueChange(selectedItem?.textValue ?? '');
+              } else {
+                onInputValueChange('');
+              }
+            }
+          }
+        })}
+        onCompositionStart={composeEventHandlers(inputProps.onCompositionStart, () => {
+          isComposingRef.current = true;
+        })}
+        onCompositionEnd={composeEventHandlers(inputProps.onCompositionEnd, () => {
+          isComposingRef.current = false;
+        })}
+      />
+    );
   },
 );
 
