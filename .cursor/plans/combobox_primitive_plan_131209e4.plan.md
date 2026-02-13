@@ -16,7 +16,7 @@ todos:
     status: completed
   - id: items-selection
     content: Implement ComboboxItem, ComboboxItemText, ComboboxItemIndicator with selection behavior and data attributes
-    status: pending
+    status: completed
   - id: keyboard-nav
     content: Implement virtual focus keyboard navigation (ArrowUp/Down, Home/End, Enter, Escape, Tab) with aria-activedescendant, initialHighlight strategy, scroll-into-view, openOnInput/openOnFocus
     status: pending
@@ -235,12 +235,12 @@ interface ComboboxBaseProps {
 interface ComboboxSingleProps extends ComboboxBaseProps {
   /** Whether the combobox allows multiple selections. */
   multiple?: false;
-  /** The controlled selected value. */
-  value?: string;
+  /** The controlled selected value. Set to `null` to clear; `undefined` = uncontrolled. */
+  value?: string | null;
   /** The default selected value (uncontrolled). */
-  defaultValue?: string;
+  defaultValue?: string | null;
   /** Event handler called when the selected value changes. */
-  onValueChange?: (value: string) => void;
+  onValueChange?: (value: string | null) => void;
 }
 
 interface ComboboxMultipleProps extends ComboboxBaseProps {
@@ -419,7 +419,7 @@ Renders `<div>`. Extends `Primitive.div` props.
 
 ```typescript
 interface ComboboxItemProps extends PrimitiveDivProps {
-  /** The value submitted when this item is selected. Required. Cannot be an empty string. */
+  /** The value submitted when this item is selected. Required. */
   value: string;
   /** Whether the item is disabled. Disabled items are skipped during keyboard navigation. */
   disabled?: boolean;

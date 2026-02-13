@@ -136,3 +136,9 @@
   stroke: var(--color-gray300);
   stroke-width: 1px;
 }
+
+/* Highlighted text matches within ComboboxItemText */
+[data-radix-combobox-highlighted-text] {
+  font-weight: 700;
+  text-decoration: underline;
+}

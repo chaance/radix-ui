@@ -51,8 +51,8 @@ type ComboboxContextValue = {
   onOpenChange(open: boolean): void;
   inputValue: string;
   onInputValueChange(value: string): void;
-  value: string | string[];
-  onValueChange(value: string | string[]): void;
+  value: string | string[] | null;
+  onValueChange(value: string | string[] | null): void;
   dir: Direction;
   allowCustomValue: boolean;
   resetInputOnSelect: boolean;
@@ -178,12 +178,15 @@ interface ComboboxSingleProps extends ComboboxBaseProps {
    * @default false
    */
   multiple?: false;
-  /** The controlled selected value */
-  value?: string;
+  /**
+   * The controlled selected value. Set to `null` to clear the selection.
+   * Use `undefined` (or omit) for uncontrolled behavior.
+   */
+  value?: string | null;
   /** The default selected value */
-  defaultValue?: string;
+  defaultValue?: string | null;
   /** Event handler called when the selected value changes */
-  onValueChange?: (value: string) => void;
+  onValueChange?: (value: string | null) => void;
 }
 
 interface ComboboxMultipleProps extends ComboboxBaseProps {
@@ -245,9 +248,9 @@ const Combobox: React.FC<ComboboxProps> = (props: ScopedProps<ComboboxProps>) =>
   });
 
   const [value, setValue] = useControllableState({
-    prop: valueProp as string | string[] | undefined,
-    defaultProp: (defaultValue as string | string[] | undefined) ?? (multiple ? [] : ''),
-    onChange: onValueChange as ((value: string | string[]) => void) | undefined,
+    prop: valueProp as string | string[] | null | undefined,
+    defaultProp: (defaultValue as string | string[] | null | undefined) ?? (multiple ? [] : null),
+    onChange: onValueChange as ((value: string | string[] | null) => void) | undefined,
     caller: COMBOBOX_NAME,
   });
 
@@ -461,8 +464,8 @@ const ComboboxInput = React.forwardRef<ComboboxInputElement, ComboboxInputProps>
             if (multiple) {
               onInputValueChange('');
             } else {
-              const selectedValue = value as string;
-              if (selectedValue) {
+              const selectedValue = value as string | null;
+              if (selectedValue !== null) {
                 const items = getItems();
                 const selectedItem = items.find((item) => item.value === selectedValue);
                 onInputValueChange(selectedItem?.textValue ?? '');
@@ -731,6 +734,17 @@ ComboboxGroupLabel.displayName = GROUP_LABEL_NAME;
 
 const ITEM_NAME = 'ComboboxItem';
 
+interface ComboboxItemContextValue {
+  value: string;
+  disabled: boolean;
+  textId: string;
+  isSelected: boolean;
+  onItemTextChange(node: HTMLSpanElement | null): void;
+}
+
+const [ComboboxItemProvider, useComboboxItemContext] =
+  createComboboxContext<ComboboxItemContextValue>(ITEM_NAME);
+
 interface ComboboxItemProps extends PrimitiveDivProps {
   /**
    * The value submitted when this item is selected
@@ -751,8 +765,125 @@ interface ComboboxItemProps extends PrimitiveDivProps {
 }
 
 const ComboboxItem = React.forwardRef<ComboboxItemElement, ComboboxItemProps>(
-  (_props: ScopedProps<ComboboxItemProps>, _ref) => {
-    throw new Error(`${ITEM_NAME}: not implemented`);
+  (props: ScopedProps<ComboboxItemProps>, forwardedRef) => {
+    const {
+      __scopeCombobox,
+      value,
+      disabled = false,
+      textValue: textValueProp,
+      ...itemProps
+    } = props;
+    const {
+      multiple,
+      value: comboboxValue,
+      onValueChange,
+      highlightedItemId,
+      onHighlightedItemIdChange,
+      onInputValueChange,
+      resetInputOnSelect,
+      isClosingRef,
+      inputRef,
+      onOpenChange,
+    } = useComboboxContext(ITEM_NAME, __scopeCombobox);
+    const textId = useId();
+    const itemId = useId();
+    const [textValue, setTextValue] = React.useState(textValueProp ?? '');
+
+    const isSelected = multiple
+      ? Array.isArray(comboboxValue) && comboboxValue.includes(value)
+      : comboboxValue === value;
+    const isHighlighted = highlightedItemId === itemId;
+
+    const handleSelect = () => {
+      if (disabled) return;
+
+      if (multiple) {
+        // Multi-select: toggle the value in the array
+        const currentValues = Array.isArray(comboboxValue) ? comboboxValue : [];
+        const newValues = currentValues.includes(value)
+          ? currentValues.filter((v) => v !== value)
+          : [...currentValues, value];
+        onValueChange(newValues);
+      } else {
+        // Single select: set the value
+        onValueChange(value);
+      }
+
+      // Update input value based on resetInputOnSelect
+      if (resetInputOnSelect) {
+        onInputValueChange('');
+      } else {
+        onInputValueChange(textValue);
+      }
+
+      // For single select, close the popover after selection
+      if (!multiple) {
+        isClosingRef.current = true;
+        onOpenChange(false);
+        requestAnimationFrame(() => {
+          isClosingRef.current = false;
+        });
+      }
+
+      // Clear the highlight after selection
+      onHighlightedItemIdChange('');
+
+      // Return focus to the input
+      inputRef.current?.focus();
+    };
+
+    return (
+      <ComboboxItemProvider
+        scope={__scopeCombobox}
+        value={value}
+        disabled={disabled}
+        textId={textId}
+        isSelected={isSelected}
+        onItemTextChange={React.useCallback((node: HTMLSpanElement | null) => {
+          setTextValue((prevTextValue) => prevTextValue || (node?.textContent ?? '').trim());
+        }, [])}
+      >
+        <Collection.ItemSlot
+          scope={__scopeCombobox}
+          value={value}
+          disabled={disabled}
+          textValue={textValue}
+        >
+          <Primitive.div
+            role="option"
+            id={itemId}
+            aria-selected={
+              multiple
+                ? isSelected // always true/false for multi-select (per WAI-ARIA)
+                : isSelected || undefined // only true or absent for single-select
+            }
+            aria-disabled={disabled || undefined}
+            aria-labelledby={textId}
+            data-radix-combobox-highlighted={isHighlighted ? '' : undefined}
+            data-radix-combobox-selected-state={isSelected ? 'checked' : 'unchecked'}
+            data-radix-combobox-disabled={disabled ? '' : undefined}
+            {...itemProps}
+            ref={forwardedRef}
+            onClick={composeEventHandlers(itemProps.onClick, handleSelect)}
+            onPointerMove={composeEventHandlers(itemProps.onPointerMove, (event) => {
+              // Highlight the item on pointer move (mouse only). Touch devices
+              // use tap-to-select and don't need hover highlighting.
+              if (disabled) return;
+              if (event.pointerType === 'mouse') {
+                onHighlightedItemIdChange(itemId);
+              }
+            })}
+            onPointerLeave={composeEventHandlers(itemProps.onPointerLeave, (event) => {
+              // Only clear if this item is still the highlighted one to avoid
+              // race conditions when moving between items
+              if (event.pointerType === 'mouse' && highlightedItemId === itemId) {
+                onHighlightedItemIdChange('');
+              }
+            })}
+          />
+        </Collection.ItemSlot>
+      </ComboboxItemProvider>
+    );
   },
 );
 
@@ -768,8 +899,8 @@ type PrimitiveSpanProps = React.ComponentPropsWithoutRef<typeof Primitive.span>;
 interface ComboboxItemTextProps extends PrimitiveSpanProps {
   /**
    * When `true`, wraps any substrings of the item's text that match the current
-   * `inputValue` in a `<span data-highlighted-text>` element for optional
-   * styling.
+   * `inputValue` in a `<span data-radix-combobox-highlighted-text>` element for
+   * optional styling.
    *
    * @default false
    */
@@ -777,8 +908,22 @@ interface ComboboxItemTextProps extends PrimitiveSpanProps {
 }
 
 const ComboboxItemText = React.forwardRef<HTMLSpanElement, ComboboxItemTextProps>(
-  (_props: ScopedProps<ComboboxItemTextProps>, _ref) => {
-    throw new Error(`${ITEM_TEXT_NAME}: not implemented`);
+  (props: ScopedProps<ComboboxItemTextProps>, forwardedRef) => {
+    const { __scopeCombobox, highlightMatches = false, children, ...itemTextProps } = props;
+    const context = useComboboxContext(ITEM_TEXT_NAME, __scopeCombobox);
+    const itemContext = useComboboxItemContext(ITEM_TEXT_NAME, __scopeCombobox);
+    const composedRefs = useComposedRefs(forwardedRef, itemContext.onItemTextChange);
+
+    const renderedChildren =
+      highlightMatches && typeof children === 'string' && context.inputValue
+        ? highlightTextMatches(children, context.inputValue)
+        : children;
+
+    return (
+      <Primitive.span id={itemContext.textId} {...itemTextProps} ref={composedRefs}>
+        {renderedChildren}
+      </Primitive.span>
+    );
   },
 );
 
@@ -796,8 +941,14 @@ interface ComboboxItemIndicatorProps extends PrimitiveSpanProps {
 }
 
 const ComboboxItemIndicator = React.forwardRef<HTMLSpanElement, ComboboxItemIndicatorProps>(
-  (_props: ScopedProps<ComboboxItemIndicatorProps>, _ref) => {
-    throw new Error(`${ITEM_INDICATOR_NAME}: not implemented`);
+  (props: ScopedProps<ComboboxItemIndicatorProps>, forwardedRef) => {
+    const { __scopeCombobox, forceMount, ...itemIndicatorProps } = props;
+    const itemContext = useComboboxItemContext(ITEM_INDICATOR_NAME, __scopeCombobox);
+    return (
+      <Presence present={forceMount || itemContext.isSelected}>
+        <Primitive.span aria-hidden {...itemIndicatorProps} ref={forwardedRef} />
+      </Presence>
+    );
   },
 );
 
@@ -837,6 +988,39 @@ const ComboboxArrow = React.forwardRef<SVGSVGElement, ComboboxArrowProps>(
 );
 
 ComboboxArrow.displayName = ARROW_NAME;
+
+/* -------------------------------------------------------------------------------------------------
+ * Utilities
+ * -----------------------------------------------------------------------------------------------*/
+
+/**
+ * Splits `text` around case-insensitive occurrences of `query`, wrapping each
+ * matched substring in a `<span data-radix-combobox-highlighted-text>` element
+ * so consumers can style it. Non-matching parts are returned as plain text.
+ */
+function highlightTextMatches(text: string, query: string): React.ReactNode {
+  if (!query) return text;
+
+  // Escape regex special characters in the query
+  const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(`(${escapedQuery})`, 'gi');
+  const parts = text.split(regex);
+
+  // No matches found — return the original text unchanged
+  if (parts.length === 1) return text;
+
+  // When splitting by a capturing group, odd-indexed parts are the matches
+  return parts.map((part, index) => {
+    if (!part) return null;
+    return index % 2 === 1 ? (
+      <span key={index} data-radix-combobox-highlighted-text="">
+        {part}
+      </span>
+    ) : (
+      part
+    );
+  });
+}
 
 /* -------------------------------------------------------------------------------------------------
  * Exports

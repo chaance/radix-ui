@@ -38,9 +38,12 @@ export const Basic = () => {
           <Combobox.Content className={styles.content} sideOffset={4}>
             {matches.length > 0 ? (
               matches.map((fruit) => (
-                <div key={fruit} className={styles.item}>
-                  {fruit}
-                </div>
+                <Combobox.Item key={fruit} value={fruit} className={styles.item}>
+                  <Combobox.ItemText>{fruit}</Combobox.ItemText>
+                  <Combobox.ItemIndicator className={styles.itemIndicator}>
+                    ✓
+                  </Combobox.ItemIndicator>
+                </Combobox.Item>
               ))
             ) : (
               <div style={{ padding: '8px 12px', color: '#999', fontSize: 14 }}>No results</div>
@@ -78,6 +81,22 @@ export const Controlled = () => {
         <Combobox.Anchor className={styles.anchor}>
           <Combobox.Input className={styles.input} placeholder="Search fruits…" />
         </Combobox.Anchor>
+        <Combobox.Portal>
+          <Combobox.Content className={styles.content} sideOffset={4}>
+            {matches.length > 0 ? (
+              matches.map((fruit) => (
+                <Combobox.Item key={fruit} value={fruit} className={styles.item}>
+                  <Combobox.ItemText>{fruit}</Combobox.ItemText>
+                  <Combobox.ItemIndicator className={styles.itemIndicator}>
+                    ✓
+                  </Combobox.ItemIndicator>
+                </Combobox.Item>
+              ))
+            ) : (
+              <div style={{ padding: '8px 12px', color: '#999', fontSize: 14 }}>No results</div>
+            )}
+          </Combobox.Content>
+        </Combobox.Portal>
       </Combobox.Root>
 
       <div style={{ marginTop: 16, fontSize: 14, color: '#666' }}>
@@ -116,9 +135,12 @@ export const OpenOnFocus = () => {
         <Combobox.Portal>
           <Combobox.Content className={styles.content} sideOffset={4}>
             {matches.map((fruit) => (
-              <div key={fruit} className={styles.item}>
-                {fruit}
-              </div>
+              <Combobox.Item key={fruit} value={fruit} className={styles.item}>
+                <Combobox.ItemText>{fruit}</Combobox.ItemText>
+                <Combobox.ItemIndicator className={styles.itemIndicator}>
+                  ✓
+                </Combobox.ItemIndicator>
+              </Combobox.Item>
             ))}
           </Combobox.Content>
         </Combobox.Portal>
@@ -132,6 +154,91 @@ export const OpenOnFocus = () => {
           Input value: <code>{JSON.stringify(inputValue)}</code>
         </div>
       </div>
+    </div>
+  );
+};
+
+export const HighlightMatches = () => {
+  const [inputValue, setInputValue] = React.useState('');
+  const matches = inputValue
+    ? FRUITS.filter((fruit) => fruit.toLowerCase().includes(inputValue.toLowerCase()))
+    : FRUITS;
+
+  return (
+    <div style={{ padding: 50 }}>
+      <Combobox.Root inputValue={inputValue} onInputValueChange={setInputValue}>
+        <Combobox.Label className={styles.label}>
+          Favorite fruit (with highlighted matches)
+        </Combobox.Label>
+        <Combobox.Anchor className={styles.anchor}>
+          <Combobox.Input className={styles.input} placeholder="Type to highlight…" />
+        </Combobox.Anchor>
+        <Combobox.Portal>
+          <Combobox.Content className={styles.content} sideOffset={4}>
+            {matches.length > 0 ? (
+              matches.map((fruit) => (
+                <Combobox.Item key={fruit} value={fruit} className={styles.item}>
+                  <Combobox.ItemText highlightMatches>{fruit}</Combobox.ItemText>
+                  <Combobox.ItemIndicator className={styles.itemIndicator}>
+                    ✓
+                  </Combobox.ItemIndicator>
+                </Combobox.Item>
+              ))
+            ) : (
+              <div style={{ padding: '8px 12px', color: '#999', fontSize: 14 }}>No results</div>
+            )}
+          </Combobox.Content>
+        </Combobox.Portal>
+      </Combobox.Root>
+
+      <div style={{ marginTop: 16, fontSize: 14, color: '#666' }}>
+        <div>
+          Input value: <code>{JSON.stringify(inputValue)}</code>
+        </div>
+        <div>Matching items: {matches.length}</div>
+      </div>
+    </div>
+  );
+};
+
+export const DisabledItems = () => {
+  const [inputValue, setInputValue] = React.useState('');
+  const matches = inputValue
+    ? FRUITS.filter((fruit) => fruit.toLowerCase().includes(inputValue.toLowerCase()))
+    : FRUITS;
+  const disabledFruits = new Set(['Cherry', 'Grape', 'Lemon']);
+
+  return (
+    <div style={{ padding: 50 }}>
+      <Combobox.Root inputValue={inputValue} onInputValueChange={setInputValue}>
+        <Combobox.Label className={styles.label}>
+          Favorite fruit (some disabled)
+        </Combobox.Label>
+        <Combobox.Anchor className={styles.anchor}>
+          <Combobox.Input className={styles.input} placeholder="Search fruits…" />
+        </Combobox.Anchor>
+        <Combobox.Portal>
+          <Combobox.Content className={styles.content} sideOffset={4}>
+            {matches.length > 0 ? (
+              matches.map((fruit) => (
+                <Combobox.Item
+                  key={fruit}
+                  value={fruit}
+                  disabled={disabledFruits.has(fruit)}
+                  className={styles.item}
+                >
+                  <Combobox.ItemText>{fruit}</Combobox.ItemText>
+                  <Combobox.ItemIndicator className={styles.itemIndicator}>
+                    ✓
+                  </Combobox.ItemIndicator>
+                </Combobox.Item>
+              ))
+            ) : (
+              <div style={{ padding: '8px 12px', color: '#999', fontSize: 14 }}>No results</div>
+            )}
+          </Combobox.Content>
+        </Combobox.Portal>
+      </Combobox.Root>
     </div>
   );
 };
