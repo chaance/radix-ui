@@ -275,6 +275,10 @@ type PrimitiveDivProps = React.ComponentPropsWithoutRef<typeof Primitive.div>;
 interface ComboboxAnchorProps extends PrimitiveDivProps {}
 ```
 
+Automatically receives:
+
+- `data-radix-combobox-open-state="open" | "closed"`
+
 ### `Combobox.Input` (`ComboboxInputProps`)
 
 Renders `<input>`. Extends `Primitive.input` props. Standard HTML input attributes (`name`, `required`, `disabled`, `form`, `placeholder`, `autoComplete`, etc.) are passed directly to the underlying `<input>`.
@@ -323,7 +327,6 @@ interface ComboboxCancelProps extends PrimitiveButtonProps {}
 
 Automatically receives:
 
-- `tabIndex={-1}` (not in tab order)
 - `data-radix-combobox-disabled` (when disabled)
 
 ### `Combobox.Portal` (`ComboboxPortalProps`)
@@ -614,12 +617,12 @@ For multi-select or more complex submission scenarios, consumers should control 
 
 The Combobox primitive uses **primitive-prefixed data attributes** (`data-radix-combobox-*`) to avoid collisions when composing components via `asChild`. This is a new convention that future Radix primitives will adopt; existing primitives will be migrated in a future major version.
 
-| Attribute                            | Used on                      | Values                         |
-| ------------------------------------ | ---------------------------- | ------------------------------ |
-| `data-radix-combobox-open-state`     | Input, Trigger, Content      | `"open"` \| `"closed"`         |
-| `data-radix-combobox-disabled`       | Input, Trigger, Cancel, Item | present when disabled          |
-| `data-radix-combobox-highlighted`    | Item                         | present when virtually focused |
-| `data-radix-combobox-selected-state` | Item                         | `"checked"` \| `"unchecked"`   |
+| Attribute                            | Used on                         | Values                         |
+| ------------------------------------ | ------------------------------- | ------------------------------ |
+| `data-radix-combobox-open-state`     | Anchor, Input, Trigger, Content | `"open"` \| `"closed"`         |
+| `data-radix-combobox-disabled`       | Input, Trigger, Cancel, Item    | present when disabled          |
+| `data-radix-combobox-highlighted`    | Item                            | present when virtually focused |
+| `data-radix-combobox-selected-state` | Item                            | `"checked"` \| `"unchecked"`   |
 
 ## File Structure
 

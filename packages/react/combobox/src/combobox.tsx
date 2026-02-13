@@ -360,7 +360,14 @@ const ComboboxAnchor = React.forwardRef<HTMLDivElement, ComboboxAnchorProps>(
     const context = useComboboxContext(ANCHOR_NAME, __scopeCombobox);
     const popperScope = usePopperScope(__scopeCombobox);
     const composedRef = useComposedRefs(forwardedRef, context.anchorRef);
-    return <PopperPrimitive.Anchor {...popperScope} {...anchorProps} ref={composedRef} />;
+    return (
+      <PopperPrimitive.Anchor
+        data-radix-combobox-open-state={context.open ? 'open' : 'closed'}
+        {...popperScope}
+        {...anchorProps}
+        ref={composedRef}
+      />
+    );
   },
 );
 
@@ -1466,10 +1473,7 @@ function revertInputValue(
  * is longer than `typed` and starts with `typed` (case-insensitive).
  */
 function hasCompletionString(typed: string, itemText: string): boolean {
-  return (
-    itemText.length > typed.length &&
-    itemText.toLowerCase().startsWith(typed.toLowerCase())
-  );
+  return itemText.length > typed.length && itemText.toLowerCase().startsWith(typed.toLowerCase());
 }
 
 /**
