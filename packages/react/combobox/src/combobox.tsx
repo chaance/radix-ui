@@ -377,6 +377,7 @@ const ComboboxInput = React.forwardRef<ComboboxInputElement, ComboboxInputProps>
       defaultValue: _defaultValue,
       ...inputProps
     } = props;
+    const context = useComboboxContext(INPUT_NAME, __scopeCombobox);
     const {
       autocompleteBehavior,
       contentId,
@@ -387,6 +388,8 @@ const ComboboxInput = React.forwardRef<ComboboxInputElement, ComboboxInputProps>
       inputValue,
       isClosingRef,
       labelId,
+      loop,
+      onHighlightedItemIdChange,
       onInputValueChange,
       onOpenChange,
       open: isOpen,
@@ -398,7 +401,7 @@ const ComboboxInput = React.forwardRef<ComboboxInputElement, ComboboxInputProps>
       multiple,
       value,
       isComposingRef,
-    } = useComboboxContext(INPUT_NAME, __scopeCombobox);
+    } = context;
     const getItems = useCollection(__scopeCombobox);
     const composedRef = useComposedRefs(forwardedRef, inputRef);
 
@@ -421,6 +424,133 @@ const ComboboxInput = React.forwardRef<ComboboxInputElement, ComboboxInputProps>
         {...inputProps}
         ref={composedRef}
         value={inputValue}
+        onKeyDown={composeEventHandlers(inputProps.onKeyDown, (event) => {
+          // Suppress all keyboard handling during IME composition to avoid
+          // interfering with multi-keystroke character input.
+          if (isComposingRef.current) return;
+
+          if (!isOpen) {
+            // --- Popover closed ---
+            switch (event.key) {
+              case 'ArrowDown':
+              case 'ArrowUp': {
+                // Open the popover. Initial highlight is applied by the
+                // content's layout effect once items are in the DOM.
+                event.preventDefault();
+                onOpenChange(true);
+                break;
+              }
+              case 'Enter': {
+                // Always allow native form submission (don't preventDefault).
+                // If allowCustomValue is false and the input doesn't match a
+                // valid selection, clear it before the form submits.
+                if (!allowCustomValue) {
+                  if (multiple) {
+                    onInputValueChange('');
+                  } else {
+                    const selectedValue = value as string | null;
+                    if (selectedValue == null) {
+                      // No selection — clear any stale text
+                      onInputValueChange('');
+                    }
+                  }
+                }
+                break;
+              }
+            }
+            return;
+          }
+
+          // --- Popover open ---
+          const items = getItems();
+          const enabledItems = items.filter((item) => !item.disabled);
+
+          switch (event.key) {
+            case 'ArrowDown': {
+              event.preventDefault();
+              if (enabledItems.length === 0) return;
+              const currentIndex = findHighlightedIndex(enabledItems, highlightedItemId);
+              let nextIndex: number;
+              if (currentIndex === -1) {
+                nextIndex = 0;
+              } else if (currentIndex >= enabledItems.length - 1) {
+                nextIndex = loop ? 0 : currentIndex;
+              } else {
+                nextIndex = currentIndex + 1;
+              }
+              highlightAndScrollItem(enabledItems[nextIndex], onHighlightedItemIdChange);
+              break;
+            }
+            case 'ArrowUp': {
+              event.preventDefault();
+              if (enabledItems.length === 0) return;
+              const currentIndex = findHighlightedIndex(enabledItems, highlightedItemId);
+              let prevIndex: number;
+              if (currentIndex === -1) {
+                prevIndex = enabledItems.length - 1;
+              } else if (currentIndex <= 0) {
+                prevIndex = loop ? enabledItems.length - 1 : currentIndex;
+              } else {
+                prevIndex = currentIndex - 1;
+              }
+              highlightAndScrollItem(enabledItems[prevIndex], onHighlightedItemIdChange);
+              break;
+            }
+            case 'Home': {
+              event.preventDefault();
+              if (enabledItems.length === 0) return;
+              highlightAndScrollItem(enabledItems[0], onHighlightedItemIdChange);
+              break;
+            }
+            case 'End': {
+              event.preventDefault();
+              if (enabledItems.length === 0) return;
+              highlightAndScrollItem(
+                enabledItems[enabledItems.length - 1],
+                onHighlightedItemIdChange,
+              );
+              break;
+            }
+            case 'Enter': {
+              if (highlightedItemId) {
+                // Select the highlighted item by programmatically clicking it.
+                // This reuses the selection logic in ComboboxItem's onClick.
+                event.preventDefault();
+                const highlightedItem = items.find(
+                  (item) => item.ref.current?.id === highlightedItemId,
+                );
+                if (highlightedItem && !highlightedItem.disabled) {
+                  highlightedItem.ref.current?.click();
+                }
+              } else {
+                // No item highlighted — close the popover and allow the Enter
+                // to perform native form submission.
+                closePopover(context);
+                onHighlightedItemIdChange('');
+                if (!allowCustomValue) {
+                  revertInputValue(context, getItems);
+                }
+              }
+              break;
+            }
+            case 'Escape': {
+              event.preventDefault();
+              closePopover(context);
+              onHighlightedItemIdChange('');
+              if (!allowCustomValue) {
+                revertInputValue(context, getItems);
+              }
+              break;
+            }
+            case 'Tab': {
+              // Close the popover and let Tab move focus naturally (don't
+              // preventDefault so the browser handles focus movement).
+              closePopover(context);
+              onHighlightedItemIdChange('');
+              break;
+            }
+          }
+        })}
         onChange={composeEventHandlers(inputProps.onChange, (event) => {
           const nativeEvent = event.nativeEvent as InputEvent;
           onInputValueChange(event.target.value);
@@ -451,28 +581,16 @@ const ComboboxInput = React.forwardRef<ComboboxInputElement, ComboboxInputProps>
           }
 
           if (isOpen) {
-            isClosingRef.current = true;
-            onOpenChange(false);
-            requestAnimationFrame(() => {
-              isClosingRef.current = false;
-            });
+            closePopover(context);
           }
+
+          // Clear highlight on blur
+          onHighlightedItemIdChange('');
 
           // When allowCustomValue is false, revert the input to the selected
           // item's text (single-select) or clear it (multi-select) on blur
           if (!allowCustomValue) {
-            if (multiple) {
-              onInputValueChange('');
-            } else {
-              const selectedValue = value as string | null;
-              if (selectedValue !== null) {
-                const items = getItems();
-                const selectedItem = items.find((item) => item.value === selectedValue);
-                onInputValueChange(selectedItem?.textValue ?? '');
-              } else {
-                onInputValueChange('');
-              }
-            }
+            revertInputValue(context, getItems);
           }
         })}
         onCompositionStart={composeEventHandlers(inputProps.onCompositionStart, () => {
@@ -607,6 +725,7 @@ const ComboboxContentImpl = React.forwardRef<ComboboxContentElement, ComboboxCon
       onInteractOutside,
       ...contentProps
     } = props;
+    const context = useComboboxContext(CONTENT_NAME, __scopeCombobox);
     const {
       contentId,
       labelId,
@@ -617,10 +736,62 @@ const ComboboxContentImpl = React.forwardRef<ComboboxContentElement, ComboboxCon
       triggerRef,
       isClosingRef,
       onOpenChange,
-    } = useComboboxContext(CONTENT_NAME, __scopeCombobox);
+      initialHighlight,
+      value,
+      onHighlightedItemIdChange,
+    } = context;
     const popperScope = usePopperScope(__scopeCombobox);
     const composedRef = useComposedRefs(forwardedRef, contentRef);
     const hasPointerDownOutsideRef = React.useRef(false);
+    const getItems = useCollection(__scopeCombobox);
+
+    // Apply the initial highlight strategy when the popover opens.
+    //
+    // We use a microtask (queueMicrotask) to defer the highlight until after
+    // Collection.ItemSlot refs are set and the collection can query the DOM.
+    //
+    // `initialHighlight`, `multiple`, and `value` are captured via a ref so
+    // we always read their latest values at the moment the popover opens
+    // without adding them as dependencies (which would re-trigger the effect
+    // on every selection change while open). `getItems` and
+    // `onHighlightedItemIdChange` are stable references (useCallback /
+    // useState setter) so including them satisfies exhaustive-deps without
+    // causing spurious re-runs.
+    const initialHighlightRef = React.useRef({ initialHighlight, multiple, value });
+    initialHighlightRef.current = { initialHighlight, multiple, value };
+
+    React.useEffect(() => {
+      if (!open) return;
+
+      let cancelled = false;
+      queueMicrotask(() => {
+        if (cancelled) return;
+        const { initialHighlight: strategy, multiple: isMulti, value: currentValue } =
+          initialHighlightRef.current;
+        if (strategy === 'none') return;
+
+        const items = getItems();
+        const enabledItems = items.filter((item) => !item.disabled);
+        if (enabledItems.length === 0) return;
+
+        if (strategy === 'selected') {
+          const selectedItem = enabledItems.find((item) => {
+            if (isMulti) {
+              return Array.isArray(currentValue) && currentValue.includes(item.value);
+            }
+            return currentValue === item.value;
+          });
+          const targetItem = selectedItem || enabledItems[0];
+          highlightAndScrollItem(targetItem, onHighlightedItemIdChange);
+        } else if (strategy === 'first') {
+          highlightAndScrollItem(enabledItems[0], onHighlightedItemIdChange);
+        }
+      });
+
+      return () => {
+        cancelled = true;
+      };
+    }, [open, getItems, onHighlightedItemIdChange]);
 
     return (
       <Collection.Slot scope={__scopeCombobox}>
@@ -992,6 +1163,66 @@ ComboboxArrow.displayName = ARROW_NAME;
 /* -------------------------------------------------------------------------------------------------
  * Utilities
  * -----------------------------------------------------------------------------------------------*/
+
+type CollectionItem = { ref: React.RefObject<HTMLElement | null>; disabled: boolean; value: string };
+
+/**
+ * Find the index of the currently highlighted item in a list of collection
+ * items by matching the DOM element's `id` attribute against `highlightedItemId`.
+ */
+function findHighlightedIndex(items: CollectionItem[], highlightedItemId: string): number {
+  if (!highlightedItemId) return -1;
+  return items.findIndex((item) => item.ref.current?.id === highlightedItemId);
+}
+
+/**
+ * Sets the highlighted item and scrolls it into view.
+ */
+function highlightAndScrollItem(
+  item: CollectionItem | undefined,
+  onHighlightedItemIdChange: (id: string) => void,
+): void {
+  const id = item?.ref.current?.id;
+  if (id) {
+    onHighlightedItemIdChange(id);
+    item.ref.current?.scrollIntoView({ block: 'nearest' });
+  }
+}
+
+/**
+ * Closes the popover with the re-entrancy guard to prevent `openOnFocus` from
+ * immediately reopening it.
+ */
+function closePopover(context: ComboboxContextValue): void {
+  context.isClosingRef.current = true;
+  context.onOpenChange(false);
+  requestAnimationFrame(() => {
+    context.isClosingRef.current = false;
+  });
+}
+
+/**
+ * Reverts the input value based on the current selection. Used when
+ * `allowCustomValue` is `false` to ensure the input always reflects a valid
+ * item (or is empty when nothing is selected).
+ */
+function revertInputValue(
+  context: ComboboxContextValue,
+  getItems: () => Array<CollectionItem & { textValue: string }>,
+): void {
+  if (context.multiple) {
+    context.onInputValueChange('');
+  } else {
+    const selectedValue = context.value as string | null;
+    if (selectedValue != null) {
+      const items = getItems();
+      const selectedItem = items.find((item) => item.value === selectedValue);
+      context.onInputValueChange(selectedItem?.textValue ?? '');
+    } else {
+      context.onInputValueChange('');
+    }
+  }
+}
 
 /**
  * Splits `text` around case-insensitive occurrences of `query`, wrapping each

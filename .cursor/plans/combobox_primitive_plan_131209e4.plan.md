@@ -19,7 +19,7 @@ todos:
     status: completed
   - id: keyboard-nav
     content: Implement virtual focus keyboard navigation (ArrowUp/Down, Home/End, Enter, Escape, Tab) with aria-activedescendant, initialHighlight strategy, scroll-into-view, openOnInput/openOnFocus
-    status: pending
+    status: completed
   - id: supporting-parts
     content: Implement ComboboxTrigger (open-only, focuses input), ComboboxCancel, ComboboxGroup, ComboboxGroupLabel, ComboboxSeparator
     status: pending
