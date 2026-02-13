@@ -580,9 +580,9 @@ This must account for:
 
 ### Form Integration
 
-Since `Combobox.Input` renders a standard `<input>` element, native form submission works automatically for single-select. The `name`, `required`, `disabled`, and `form` attributes are passed directly to the `<input>` — no hidden bubble input is needed (unlike Select, which uses a `<button>` trigger and requires a hidden `<select>`).
+Since `Combobox.Input` renders a standard `<input>` element, native form submission works automatically. The `name`, `required`, `disabled`, and `form` attributes can be passed directly to `Combobox.Input` — no hidden bubble input is needed (unlike Select, which uses a `<button>` trigger and requires a hidden `<select>`).
 
-For multi-select, the native `<input>` value represents the current search text, not the selected values. **No hidden bubble inputs are provided for multi-select form submission.** Consumers who need to submit multiple selected values in a form should control the `value` state and render their own hidden inputs (or use a different submission strategy like `FormData` manipulation). This keeps the primitive lean and avoids prescribing a form submission pattern.
+For multi-select or more complex submission scenarios, consumers should control the `value` state and render their own hidden inputs (or use a different submission strategy like `FormData` manipulation). This keeps the primitive lean and avoids prescribing a form submission pattern that would vary too much across use cases.
 
 ## Keyboard Interaction
 
@@ -750,7 +750,7 @@ Implement `ComboboxTrigger` (open-only — does not close the popover; moves foc
 
 ### Phase 7: Multi-select support
 
-Implement multi-select mode via the `multiple` prop. When `multiple` is `true`, `value` and `onValueChange` use `string[]`. Toggle behavior on item selection (popover stays open). `resetInputOnSelect` defaults to `true` for multi-select. `ComboboxItemIndicator` shows for each selected item. Content receives `aria-multiselectable="true"`. No hidden bubble inputs for form submission — consumers control their own submission strategy.
+Implement multi-select mode via the `multiple` prop. When `multiple` is `true`, `value` and `onValueChange` use `string[]`. Toggle behavior on item selection (popover stays open). `resetInputOnSelect` defaults to `true` for multi-select. `ComboboxItemIndicator` shows for each selected item. Content receives `aria-multiselectable="true"`.
 
 ### Phase 8: Inline completion (`autocompleteBehavior="both"`)
 
@@ -770,13 +770,20 @@ Implement inline completion behavior when `autocompleteBehavior` is `"both"`: au
 - **Autocomplete behavior**: `autocompleteBehavior="list"` sets `aria-autocomplete="list"`. `autocompleteBehavior="both"` sets `aria-autocomplete="both"` and inline-completes the input. `autocompleteBehavior="none"` sets `aria-autocomplete="none"`.
 - **Scroll into view**: Highlighted item scrolls into view on every arrow key navigation, Home/End, and initial highlight on open.
 - **Disabled state**: Entire combobox disabled via Root `disabled` prop. Individual items disabled via `disabled` prop. Verify disabled items are skipped during navigation and not selectable.
-- **Form integration**: `name`, `required`, `form` attributes on the native `<input>`. Form submission includes the input value. Required validation works with native form validation.
+- **Form integration** (no hidden inputs — `Combobox.Input` is the native form field):
+  - Enter key submits the enclosing form when the popover is closed.
+  - `name` attribute on `Combobox.Input` is included in submitted `FormData`.
+  - `required` prevents form submission when the input is empty (native validation).
+  - `enforceMatchingInputValue` clears non-matching input before form submission on Enter.
+  - `disabled` excludes the input value from `FormData`.
+  - `form` attribute associates the input with a `<form>` outside its DOM ancestry.
+  - Multi-select: the native input value reflects search text, not selected values. Consumers handle submission of selected values themselves.
 - **RTL**: Arrow key directions are correct when `dir="rtl"` (primarily relevant if horizontal navigation is ever supported).
 - **Dynamic items**: Items added/removed while open. Highlighted item removed (highlight moves to nearest valid item). All items removed (no items in collection; consumer handles empty state rendering).
 
 #### Storybook stories
 
-- Styled, Controlled, Uncontrolled, Grouped items, Multi-select, Custom value, Form integration (single-select), Disabled, RTL, Animated (open/close transitions), Within Dialog, With Trigger, With Cancel button, Large collections (scroll behavior), Autocomplete Both (inline completion), Initial Highlight variants, Open on Focus, Open on Input.
+- Styled, Controlled, Uncontrolled, Grouped items, Multi-select, Custom value, Disabled, RTL, Animated (open/close transitions), Within Dialog, With Trigger, With Cancel button, Large collections (scroll behavior), Autocomplete Both (inline completion), Initial Highlight variants, Open on Focus, Open on Input.
 
 #### Cypress e2e tests
 
