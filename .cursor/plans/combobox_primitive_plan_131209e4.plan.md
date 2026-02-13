@@ -140,7 +140,7 @@ export type {
 | `Combobox.Content`       | `ComboboxContent`       | `<div>`         | Positioned popover containing the listbox. Wraps `PopperPrimitive.Content` + `DismissableLayer`. Renders `role="listbox"`.                |
 | `Combobox.Group`         | `ComboboxGroup`         | `<div>`         | Groups items. `role="group"`, `aria-labelledby`.                                                                                          |
 | `Combobox.GroupLabel`    | `ComboboxGroupLabel`    | `<div>`         | Label for a group.                                                                                                                        |
-| `Combobox.Item`          | `ComboboxItem`          | `<div>`         | Individual option. `role="option"`, `aria-selected`, `aria-disabled`. Receives `data-highlighted` when virtually focused.                 |
+| `Combobox.Item`          | `ComboboxItem`          | `<div>`         | Individual option. `role="option"`, `aria-selected`, `aria-disabled`. Receives `data-radix-combobox-highlighted` when virtually focused.  |
 | `Combobox.ItemText`      | `ComboboxItemText`      | `<span>`        | Text content of an item (used for textValue extraction).                                                                                  |
 | `Combobox.ItemIndicator` | `ComboboxItemIndicator` | `<span>`        | Renders only when item is selected (check mark, etc.).                                                                                    |
 | `Combobox.Separator`     | `ComboboxSeparator`     | `<div>`         | Visual separator between items/groups.                                                                                                    |
@@ -292,8 +292,8 @@ Automatically receives the following ARIA attributes (not user-specified):
 - `aria-autocomplete` (derived from Root's `autocompleteBehavior` prop: `"list"`, `"both"`, or `"none"`)
 - `aria-controls` (pointing to content listbox ID)
 - `aria-labelledby` or `aria-label` (from Label association)
-- `data-state="open" | "closed"`
-- `data-disabled` (when disabled)
+- `data-radix-combobox-open-state="open" | "closed"`
+- `data-radix-combobox-disabled` (when disabled)
 
 ### `Combobox.Trigger` (`ComboboxTriggerProps`)
 
@@ -310,8 +310,8 @@ Automatically receives:
 - `aria-expanded` (from open state)
 - `aria-label="Show suggestions"` (default, overridable by consumer)
 - `tabIndex={-1}` (not in tab order; input is the primary focusable element)
-- `data-state="open" | "closed"`
-- `data-disabled` (when disabled)
+- `data-radix-combobox-open-state="open" | "closed"`
+- `data-radix-combobox-disabled` (when disabled)
 
 ### `Combobox.Cancel` (`ComboboxCancelProps`)
 
@@ -324,7 +324,7 @@ interface ComboboxCancelProps extends PrimitiveButtonProps {}
 Automatically receives:
 
 - `tabIndex={-1}` (not in tab order)
-- `data-disabled` (when disabled)
+- `data-radix-combobox-disabled` (when disabled)
 
 ### `Combobox.Portal` (`ComboboxPortalProps`)
 
@@ -382,7 +382,7 @@ Automatically receives:
 - `role="listbox"`
 - `aria-multiselectable="true"` (when `multiple` is `true` on Root)
 - `aria-labelledby` (pointing to the label or input)
-- `data-state="open" | "closed"`
+- `data-radix-combobox-open-state="open" | "closed"`
 
 CSS custom properties exposed:
 
@@ -433,9 +433,9 @@ Automatically receives:
 - `role="option"`
 - `aria-selected` (true when this item's value matches the selected value)
 - `aria-disabled` (when disabled)
-- `data-highlighted` (when virtually focused via aria-activedescendant)
-- `data-state="checked" | "unchecked"` (based on selection)
-- `data-disabled` (when disabled)
+- `data-radix-combobox-highlighted` (when virtually focused via aria-activedescendant)
+- `data-radix-combobox-selected-state="checked" | "unchecked"` (based on selection)
+- `data-radix-combobox-disabled` (when disabled)
 
 ### `Combobox.ItemText` (`ComboboxItemTextProps`)
 
@@ -482,7 +482,7 @@ interface ComboboxArrowProps extends PopperArrowProps {}
 
 ### Virtual Focus via `aria-activedescendant`
 
-Unlike Select (which uses roving tabindex), Combobox must use **virtual focus**. DOM focus stays on the `<input>` at all times so the user can keep typing. Arrow key navigation updates `aria-activedescendant` on the input to point to the highlighted item's `id`. The highlighted item receives a `data-highlighted` attribute for styling.
+Unlike Select (which uses roving tabindex), Combobox must use **virtual focus**. DOM focus stays on the `<input>` at all times so the user can keep typing. Arrow key navigation updates `aria-activedescendant` on the input to point to the highlighted item's `id`. The highlighted item receives a `data-radix-combobox-highlighted` attribute for styling.
 
 This is a critical difference from Select and means we do NOT use `@radix-ui/react-roving-focus`. Instead, we manage a `highlightedItem` ref/state internally, tracking which item ID is active.
 
@@ -606,18 +606,20 @@ For multi-select, the native `<input>` value represents the current search text,
 ### Item (via virtual focus)
 
 - **Enter / Click**: Select item, close popover (single-select) or toggle item (multi-select)
-- `data-highlighted` attribute applied to the virtually focused item
-- `data-state="checked" | "unchecked"` on items based on selection
-- `data-disabled` on disabled items
+- `data-radix-combobox-highlighted` attribute applied to the virtually focused item
+- `data-radix-combobox-selected-state="checked" | "unchecked"` on items based on selection
+- `data-radix-combobox-disabled` on disabled items
 
 ## Data Attributes
 
-Following Radix conventions:
+The Combobox primitive uses **primitive-prefixed data attributes** (`data-radix-combobox-*`) to avoid collisions when composing components via `asChild`. This is a new convention that future Radix primitives will adopt; existing primitives will be migrated in a future major version.
 
-- `[data-state="open"|"closed"]` on Input, Trigger, Content
-- `[data-disabled]` on Input, Trigger, Item when disabled
-- `[data-highlighted]` on the virtually focused Item
-- `[data-state="checked"|"unchecked"]` on Item based on selection
+| Attribute | Used on | Values |
+| --- | --- | --- |
+| `data-radix-combobox-open-state` | Input, Trigger, Content | `"open"` \| `"closed"` |
+| `data-radix-combobox-disabled` | Input, Trigger, Cancel, Item | present when disabled |
+| `data-radix-combobox-highlighted` | Item | present when virtually focused |
+| `data-radix-combobox-selected-state` | Item | `"checked"` \| `"unchecked"` |
 
 ## File Structure
 
@@ -736,7 +738,7 @@ Implement `ComboboxPortal`, `ComboboxContent` (Popper + DismissableLayer + `role
 
 ### Phase 4: Items and selection
 
-Implement `ComboboxItem`, `ComboboxItemText`, `ComboboxItemIndicator`. Wire up selection on Enter/click. Handle `data-highlighted`, `data-state`, and `data-disabled` attributes.
+Implement `ComboboxItem`, `ComboboxItemText`, `ComboboxItemIndicator`. Wire up selection on Enter/click. Handle `data-radix-combobox-highlighted`, `data-radix-combobox-selected-state`, and `data-radix-combobox-disabled` attributes.
 
 ### Phase 5: Keyboard navigation (virtual focus)
 
@@ -833,13 +835,13 @@ Features that are out of scope for the initial implementation but should be cons
 
 ### `highlightMatches` on `ComboboxItemText`
 
-A `highlightMatches?: boolean` prop on `ComboboxItemText` that automatically wraps substrings matching the current `inputValue` in a `<span data-highlighted-text>` element. This would allow consumers to style matching characters with CSS (e.g., bold or colored text).
+A `highlightMatches?: boolean` prop on `ComboboxItemText` that automatically wraps substrings matching the current `inputValue` in a `<span data-radix-combobox-highlighted-text>` element. This would allow consumers to style matching characters with CSS (e.g., bold or colored text).
 
 ```tsx
 // Future API sketch:
 <Combobox.ItemText highlightMatches>Apple</Combobox.ItemText>
 // When inputValue is "app", renders:
-// <span><span data-highlighted-text>App</span>le</span>
+// <span><span data-radix-combobox-highlighted-text>App</span>le</span>
 ```
 
 Implementation considerations:
