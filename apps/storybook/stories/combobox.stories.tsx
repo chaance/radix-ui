@@ -64,7 +64,7 @@ export const Basic = () => {
 
 export const Controlled = () => {
   const [inputValue, setInputValue] = React.useState('');
-  const [value, setValue] = React.useState('Banana');
+  const [value, setValue] = React.useState<string | null>('Banana');
   const matches = inputValue
     ? FRUITS.filter((fruit) => fruit.toLowerCase().includes(inputValue.toLowerCase()))
     : FRUITS;
@@ -137,9 +137,7 @@ export const OpenOnFocus = () => {
             {matches.map((fruit) => (
               <Combobox.Item key={fruit} value={fruit} className={styles.item}>
                 <Combobox.ItemText>{fruit}</Combobox.ItemText>
-                <Combobox.ItemIndicator className={styles.itemIndicator}>
-                  ✓
-                </Combobox.ItemIndicator>
+                <Combobox.ItemIndicator className={styles.itemIndicator}>✓</Combobox.ItemIndicator>
               </Combobox.Item>
             ))}
           </Combobox.Content>
@@ -211,9 +209,7 @@ export const DisabledItems = () => {
   return (
     <div style={{ padding: 50 }}>
       <Combobox.Root inputValue={inputValue} onInputValueChange={setInputValue}>
-        <Combobox.Label className={styles.label}>
-          Favorite fruit (some disabled)
-        </Combobox.Label>
+        <Combobox.Label className={styles.label}>Favorite fruit (some disabled)</Combobox.Label>
         <Combobox.Anchor className={styles.anchor}>
           <Combobox.Input className={styles.input} placeholder="Search fruits…" />
         </Combobox.Anchor>
