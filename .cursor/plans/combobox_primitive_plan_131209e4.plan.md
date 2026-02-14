@@ -194,13 +194,12 @@ interface ComboboxBaseProps {
 
   // Behavior
   /**
-   * Controls how the input value and selection are reconciled on blur. Only
-   * affects single-select mode — has **no effect** when `multiple` is `true`.
+   * Controls how the input value and selection are reconciled on blur.
    *
    * On blur, if the current input text exactly matches a valid item's text, the
    * selection is updated to that item regardless of this prop's value.
    *
-   * When `true`:
+   * When `"validate"`:
    * - If the input does not match any item and there IS a selection, the input
    *   reverts to the selected item's text and the selection is preserved.
    * - If the input does not match any item and there is NO selection, the input
@@ -212,7 +211,7 @@ interface ComboboxBaseProps {
    * - On Enter (popover closed), non-matching input is cleared before form
    *   submission.
    *
-   * When `false` (default):
+   * When `"none"`
    * - If the input does not match any item, the typed value is preserved and any
    *   existing selection is cleared (`null`).
    * - If the input is cleared entirely, the empty value is preserved and any
@@ -220,8 +219,10 @@ interface ComboboxBaseProps {
    * - On Escape (popover closed), the typed value is preserved.
    * - On Enter (popover closed), non-matching input is NOT cleared before form
    *   submission.
+   *
+   * @default "none"
    */
-  enforceMatchingInputValue?: boolean;
+  blurValidationBehavior?: 'validate' | 'none';
   /** Reset input text after selecting an item (defaults to true for multi-select) */
   resetInputOnSelect?: boolean;
   /** Open popover when input receives focus */
@@ -615,7 +616,7 @@ For multi-select or more complex submission scenarios, consumers should control 
 ### Input Focused (popover closed)
 
 - **ArrowDown / ArrowUp / Alt+ArrowDown**: Open popover, highlight item per `initialHighlight` strategy
-- **Enter**: Always allows native form submission (does not `preventDefault`). If `enforceMatchingInputValue` is `true` and the current input value does not match any item's text, the input value is cleared before submission so that an invalid value is never submitted. If `enforceMatchingInputValue` is `false`, the input value is left as-is regardless of whether it matches an item.
+- **Enter**: Always allows native form submission (does not `preventDefault`). If `blurValidationBehavior` is `"validate"` and the current input value does not match any item's text, the input value is cleared before submission so that an invalid value is never submitted. If `blurValidationBehavior` is `"none"`, the input value is left as-is regardless of whether it matches an item.
 - **Typing**: Updates input value. Opens popover if `openOnInput` is `true` (the default).
 
 ### Input Focused (popover open)
@@ -625,7 +626,7 @@ For multi-select or more complex submission scenarios, consumers should control 
 - **Home**: Highlight first enabled item. Scrolls into view.
 - **End**: Highlight last enabled item. Scrolls into view.
 - **Enter**: Select highlighted item, close popover. When `autocompleteBehavior` is `"both"`, also accepts the inline completion.
-- **Escape**: Close popover. When `enforceMatchingInputValue` is `true`, revert input value to the selected item's text (or clear if no selection). When `enforceMatchingInputValue` is `false`, preserve the current typed value.
+- **Escape**: Close popover. When `blurValidationBehavior` is `"validate"`, revert input value to the selected item's text (or clear if no selection). When `blurValidationBehavior` is `"none"`, preserve the current typed value.
 - **Tab**: Close popover, move focus naturally. If `autocompleteBehavior` is `"both"` and an inline completion is pending, accepts it before closing.
 - **Typing**: Updates input value, resets highlight to first matching item
 
@@ -752,7 +753,7 @@ Always link to the specific file and include the copyright holder. For React Ari
 
 ### Phase 1: Package scaffolding and core state
 
-Set up the package directory, `package.json`, `tsconfig.json`, `eslint.config.mjs`. Implement the `Combobox` root with `createContextScope`, legacy `createCollection`, and controllable state for `inputValue`, `value`, and `open`. Implement the `ComboboxProps` discriminated union (`ComboboxSingleProps | ComboboxMultipleProps`) with the `multiple` prop as the discriminant. Wire up `autocompleteBehavior`, `initialHighlight`, `openOnFocus`, `openOnInput`, `enforceMatchingInputValue`, and `resetInputOnSelect` props in context.
+Set up the package directory, `package.json`, `tsconfig.json`, `eslint.config.mjs`. Implement the `Combobox` root with `createContextScope`, legacy `createCollection`, and controllable state for `inputValue`, `value`, and `open`. Implement the `ComboboxProps` discriminated union (`ComboboxSingleProps | ComboboxMultipleProps`) with the `multiple` prop as the discriminant. Wire up `autocompleteBehavior`, `initialHighlight`, `openOnFocus`, `openOnInput`, `blurValidationBehavior`, and `resetInputOnSelect` props in context.
 
 ### Phase 2: Input, Anchor, Label
 
@@ -768,7 +769,7 @@ Implement `ComboboxItem`, `ComboboxItemText`, `ComboboxItemIndicator`. Wire up s
 
 ### Phase 5: Keyboard navigation (virtual focus)
 
-Implement arrow key navigation maintaining `aria-activedescendant`. Handle Home/End, Enter to select, Escape to close (with input revert when `enforceMatchingInputValue` is `true`, or preserved when `false`), Tab to close. Use the collection to find next/previous enabled items. Implement the `initialHighlight` strategy (`"selected"`, `"first"`, `"none"`) to determine which item is highlighted when the popover opens. Implement explicit scroll-into-view (`element.scrollIntoView({ block: 'nearest' })`) on every highlight change. Handle `openOnInput` and `openOnFocus` for popover open triggers, including the **re-entrancy guard** for `openOnFocus` to prevent the popover from reopening when focus returns to the input after an intentional close. Study Ariakit's composite system (`packages/ariakit-react-core/src/composite/`) and React Aria's `useComboBox.ts` keyboard handler for browser-specific workarounds (e.g., Firefox `aria-activedescendant` behavior, preventing scroll on arrow keys, IME composition guards).
+Implement arrow key navigation maintaining `aria-activedescendant`. Handle Home/End, Enter to select, Escape to close (with input revert when `blurValidationBehavior` is `"validate"`, or preserved when `"none"`), Tab to close. Use the collection to find next/previous enabled items. Implement the `initialHighlight` strategy (`"selected"`, `"first"`, `"none"`) to determine which item is highlighted when the popover opens. Implement explicit scroll-into-view (`element.scrollIntoView({ block: 'nearest' })`) on every highlight change. Handle `openOnInput` and `openOnFocus` for popover open triggers, including the **re-entrancy guard** for `openOnFocus` to prevent the popover from reopening when focus returns to the input after an intentional close. Study Ariakit's composite system (`packages/ariakit-react-core/src/composite/`) and React Aria's `useComboBox.ts` keyboard handler for browser-specific workarounds (e.g., Firefox `aria-activedescendant` behavior, preventing scroll on arrow keys, IME composition guards).
 
 ### Phase 6: Supporting components
 
@@ -777,8 +778,6 @@ Implement `ComboboxTrigger` (open-only — does not close the popover; moves foc
 ### Phase 7: Multi-select support
 
 Implement multi-select mode via the `multiple` prop. When `multiple` is `true`, `value` and `onValueChange` use `string[]`. Toggle behavior on item selection (popover stays open). `resetInputOnSelect` defaults to `true` for multi-select. `ComboboxItemIndicator` shows for each selected item. Content receives `aria-multiselectable="true"`.
-
-> Note: `enforceMatchingInputValue` has no effect in multi-select mode.
 
 ### Phase 8: Inline completion (`autocompleteBehavior="both"`)
 
@@ -793,8 +792,8 @@ Implement inline completion behavior when `autocompleteBehavior` is `"both"`: au
 - **Keyboard navigation**: ArrowDown/ArrowUp cycling (with and without `loop`), Home/End, Enter to select, Escape to close, Tab to close and move focus, Alt+ArrowDown to open. Verify no-ops on disabled items.
 - **IME composition**: Simulate `compositionstart` / `compositionupdate` / `compositionend` events. Verify that keyboard navigation and selection are suppressed during active composition, and that the input value updates correctly on `compositionend`.
 - **Selection behavior**: Single select (value updates, input text updates, popover closes). Multi-select (value toggles, popover stays open, `resetInputOnSelect`).
-- **`enforceMatchingInputValue`** — test the following matrix for single-select. The prop has **no effect** in multi-select mode, so multi-select assertions should be identical for `true` and `false`.
-  - **When `true` + single select**:
+- **`blurValidationBehavior`** — test the following matrix for single-select.
+  - **When `"validate"` + single select**:
     - No selection + unmatched input → blur → input cleared to `""`, selection stays `null`.
     - No selection + matched input → blur → input stays matched text, selection updates to matched item.
     - Selection + unmatched input → blur → input reverts to selected item text, selection preserved.
@@ -804,7 +803,7 @@ Implement inline completion behavior when `autocompleteBehavior` is `"both"`: au
     - Revert input on Escape.
     - Clear non-matching input before form submission on Enter.
     - Allow an empty input as intentional deselection on blur.
-  - **When `false` + single select**:
+  - **When `"none"` + single select**:
     - No selection + unmatched input → blur → input preserved as typed, selection stays `null`.
     - No selection + matched input → blur → input stays matched text, selection updates to matched item.
     - Selection + unmatched input → blur → input preserved as typed, selection cleared to `null`.
@@ -813,7 +812,10 @@ Implement inline completion behavior when `autocompleteBehavior` is `"both"`: au
     - Preserve any typed value on blur.
     - Preserve any typed value on Escape when popover is closed.
     - Not clear non-matching input on form submission.
-- **Open/close triggers**: Typing opens popover (when `openOnInput` is true). `openOnFocus` opens on focus (with re-entrancy guard — does not reopen after intentional close). `openOnInput` opens on typing. Both can be enabled simultaneously. Trigger button opens (does not toggle/close). Outside click closes. Escape closes. Blur closes (with input value revert behavior governed by `enforceMatchingInputValue`).
+      > The behavior for `blurValidationBehavior` in multi-select mode is not clear
+      > at this time. We will work this out later.
+
+- **Open/close triggers**: Typing opens popover (when `openOnInput` is true). `openOnFocus` opens on focus (with re-entrancy guard — does not reopen after intentional close). `openOnInput` opens on typing. Both can be enabled simultaneously. Trigger button opens (does not toggle/close). Outside click closes. Escape closes. Blur closes (with input value revert behavior governed by `blurValidationBehavior`).
 - **Initial highlight**: `initialHighlight="selected"` highlights selected item on open, falls back to first. `initialHighlight="first"` always highlights first. `initialHighlight="none"` highlights nothing until arrow key press.
 - **Autocomplete behavior**: `autocompleteBehavior="list"` sets `aria-autocomplete="list"`. `autocompleteBehavior="both"` sets `aria-autocomplete="both"` and inline-completes the input. `autocompleteBehavior="none"` sets `aria-autocomplete="none"`.
 - **Scroll into view**: Highlighted item scrolls into view on every arrow key navigation, Home/End, and initial highlight on open.
@@ -822,7 +824,7 @@ Implement inline completion behavior when `autocompleteBehavior` is `"both"`: au
   - Enter key submits the enclosing form when the popover is closed.
   - `name` attribute on `Combobox.Input` is included in submitted `FormData`.
   - `required` prevents form submission when the input is empty (native validation).
-  - When `enforceMatchingInputValue` is `true`, non-matching input is cleared before form submission on Enter. When `false`, non-matching input is left as-is.
+  - When `blurValidationBehavior` is `"validate"`, non-matching input is cleared before form submission on Enter. When `"none"`, non-matching input is left as-is.
   - `disabled` excludes the input value from `FormData`.
   - `form` attribute associates the input with a `<form>` outside its DOM ancestry.
   - Multi-select: the native input value reflects search text, not selected values. Consumers handle submission of selected values themselves.

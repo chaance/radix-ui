@@ -222,18 +222,17 @@ describe('Multi-select', () => {
 });
 
 // ---------------------------------------------------------------------------
-// enforceMatchingInputValue
+// blurValidationBehavior
 // ---------------------------------------------------------------------------
 
-describe('enforceMatchingInputValue', () => {
+describe('blurValidationBehavior', () => {
   afterEach(cleanup);
 
-  describe('when true + multi select', () => {
-    // TODO: Write these tests. This prop has no effect on multi select so
-    // assertions should be identical with true and false cases.
+  describe('when "validate" + multi select', () => {
+    // TODO
   });
 
-  describe('when true + single select', () => {
+  describe('when "validate" + single select', () => {
     describe('with no selection value + un-matched input value', () => {
       it.todo('should have empty input and selection value on blur', async () => {
         const inputValue = ''; // TODO
@@ -303,7 +302,7 @@ describe('enforceMatchingInputValue', () => {
     it.todo('should allow an empty input as intentional deselection on blur');
   });
 
-  describe('when false + single select', () => {
+  describe('when "none" + single select', () => {
     describe('with no selection value + un-matched input value', () => {
       it.todo('should preserve input value and clear selection value on blur', async () => {
         const inputValue = ''; // TODO
@@ -516,7 +515,7 @@ describe('Form integration', () => {
   it.todo('should prevent form submission when required and input is empty', () => {});
 
   it.todo(
-    'should clear non-matching input before submission when enforceMatchingInputValue is true',
+    'should clear non-matching input before submission when blurValidationBehavior is "validate"',
     () => {},
   );
 

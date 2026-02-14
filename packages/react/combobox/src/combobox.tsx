@@ -54,7 +54,7 @@ type ComboboxContextValue = {
   value: string | string[] | null;
   onValueChange(value: string | string[] | null): void;
   dir: Direction;
-  enforceMatchingInputValue: boolean;
+  blurValidationBehavior: 'validate' | 'none';
   resetInputOnSelect: boolean;
   openOnFocus: boolean;
   openOnInput: boolean;
@@ -106,13 +106,17 @@ interface ComboboxBaseProps {
   onOpenChange?: (open: boolean) => void;
 
   /**
-   * When `true`, the input value is reverted to the selected item's text on
-   * blur if it doesn't match a valid item. When `false` (default), any typed
-   * value is preserved on blur.
+   * Controls how the input value and selection are reconciled on blur. Only
+   * affects single-select mode — has no effect when `multiple` is `true`.
    *
-   * @default false
+   * - `"validate"`: If the input does not match a valid item on blur, the input
+   *   reverts to the selected item's text (or clears if nothing is selected).
+   * - `"none"` (default): Any typed value is preserved on blur, and the
+   *   selection is cleared if the input does not match a valid item.
+   *
+   * @default "none"
    */
-  enforceMatchingInputValue?: boolean;
+  blurValidationBehavior?: 'validate' | 'none';
 
   /**
    * Reset input text after selecting an item
@@ -220,7 +224,7 @@ const Combobox: React.FC<ComboboxProps> = (props: ScopedProps<ComboboxProps>) =>
     defaultValue,
     onValueChange,
     multiple = false,
-    enforceMatchingInputValue = false,
+    blurValidationBehavior = 'none',
     resetInputOnSelect = multiple,
     openOnFocus = false,
     openOnInput = true,
@@ -294,7 +298,7 @@ const Combobox: React.FC<ComboboxProps> = (props: ScopedProps<ComboboxProps>) =>
         value={value}
         onValueChange={setValue}
         dir={direction}
-        enforceMatchingInputValue={enforceMatchingInputValue}
+        blurValidationBehavior={blurValidationBehavior}
         resetInputOnSelect={resetInputOnSelect}
         openOnFocus={openOnFocus}
         openOnInput={openOnInput}
@@ -413,7 +417,7 @@ const ComboboxInput = React.forwardRef<ComboboxInputElement, ComboboxInputProps>
       openOnFocus,
       openOnInput,
       contentRef,
-      enforceMatchingInputValue,
+      blurValidationBehavior,
       multiple,
       value,
       isComposingRef,
@@ -547,9 +551,9 @@ const ComboboxInput = React.forwardRef<ComboboxInputElement, ComboboxInputProps>
               }
               case 'Enter': {
                 // Always allow native form submission (don't preventDefault).
-                // If enforceMatchingInputValue is true and the input doesn't
+                // If blurValidationBehavior is "validate" and the input doesn't
                 // match a valid selection, clear it before the form submits.
-                if (enforceMatchingInputValue) {
+                if (blurValidationBehavior === 'validate') {
                   if (multiple) {
                     onInputValueChange('');
                   } else {
@@ -636,7 +640,7 @@ const ComboboxInput = React.forwardRef<ComboboxInputElement, ComboboxInputProps>
                 // to perform native form submission.
                 closePopover(context);
                 onHighlightedItemIdChange('');
-                if (enforceMatchingInputValue) {
+                if (blurValidationBehavior === 'validate') {
                   revertInputValue(context, getItems);
                 }
               }
@@ -646,7 +650,7 @@ const ComboboxInput = React.forwardRef<ComboboxInputElement, ComboboxInputProps>
               event.preventDefault();
               closePopover(context);
               onHighlightedItemIdChange('');
-              if (enforceMatchingInputValue) {
+              if (blurValidationBehavior === 'validate') {
                 revertInputValue(context, getItems);
               }
               break;
@@ -749,12 +753,12 @@ const ComboboxInput = React.forwardRef<ComboboxInputElement, ComboboxInputProps>
           // Clear highlight on blur
           onHighlightedItemIdChange('');
 
-          // When enforceMatchingInputValue is true, revert the input to the
-          // selected item's text (single-select) or clear it (multi-select) on
-          // blur. An empty input is treated as an intentional deselection:
-          // clear the value instead of restoring the previously selected
-          // item's text.
-          if (enforceMatchingInputValue) {
+          // When blurValidationBehavior is "validate", revert the input to
+          // the selected item's text (single-select) or clear it
+          // (multi-select) on blur. An empty input is treated as an
+          // intentional deselection: clear the value instead of restoring
+          // the previously selected item's text.
+          if (blurValidationBehavior === 'validate') {
             if (!inputValue && !multiple) {
               context.onValueChange(null);
               context.selectedTextRef.current = '';
@@ -1443,7 +1447,7 @@ function closePopover(context: ComboboxContextValue): void {
 
 /**
  * Reverts the input value based on the current selection. Used when
- * `enforceMatchingInputValue` is `true` to ensure the input always reflects
+ * `blurValidationBehavior` is `"validate"` to ensure the input always reflects
  * a valid item (or is empty when nothing is selected).
  */
 function revertInputValue(
